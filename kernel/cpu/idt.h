@@ -39,7 +39,10 @@ typedef union{
     }data;
 }pic_mask_slave_t;
 
+extern pic_mask_master_t master_pic_mask;
+extern pic_mask_slave_t slave_pic_mask;
 
+extern int irq_install_handler(void *handler, int irq_number);
 
 typedef struct
 {
@@ -49,3 +52,5 @@ typedef struct
     unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
 } irq_registers_t;
 extern void init_idt();
+
+void pic_remask();

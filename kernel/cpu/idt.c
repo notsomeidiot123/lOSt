@@ -155,6 +155,14 @@ idt_descriptor idt_desc;
 
 void *_irq_handlers[16] = {0};
 
+int irq_install_handler(void *handler, int irq_number){
+    if(_irq_handlers[irq_number]){
+        return -1;
+    }
+    _irq_handlers[irq_number] = handler;
+    return 0;
+}
+
 void irq_remap(){
     outb(0x20, 0x11 );
     outb(0xa0, 0x11);
@@ -187,6 +195,9 @@ extern void _irq_handler(irq_registers_t *regs){
     }
     outb(0x20, 0x20);
 }
+pic_mask_master_t master_pic_mask;
+pic_mask_slave_t slave_pic_mask;
+
 void init_idt(){
     // padding = 8;
     struct idt_flags_s isr_flags = (struct idt_flags_s){0xe, 0, 0, 1};
@@ -207,15 +218,18 @@ void init_idt(){
     irq_remap();
     idt_set(0x80, (unsigned long)softint, isr_flags);
     
-    outb(0x21, 0xfe);
+    outb(0x21, 0xff);
     outb(0xa1, 0xff);
+    slave_pic_mask.byte = 0xff;
+    master_pic_mask.byte = 0xff;
     asm("sti");
     load_idt();
     return;
 }
 
-void pic_remask(pic_mask_master_t master_mask, pic_mask_slave_t slave_mask){
-    outb(0x21, *(unsigned char*)&master_mask);
-    outb(0xa1, *(unsigned char*)&slave_mask);
+
+void pic_remask(){
+    outb(0x21, master_pic_mask.byte);
+    outb(0xa1, slave_pic_mask.byte);
 
 }

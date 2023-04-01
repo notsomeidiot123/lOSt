@@ -48,7 +48,8 @@ qemu-system-i386 bin/lOSt.bin\
     -fda drives/testfd.fd\
     -no-reboot\
     -no-shutdown\
+    -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
     # -d int
 
-hd bin/lOSt.bin > dump.hd
+hexdump -C bin/lOSt.bin > dump.hd
 echo -e "\e[31mEnd\e[0m"
