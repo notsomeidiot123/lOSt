@@ -25,7 +25,10 @@ void kputc(char c){
         char col = (char)base_color;
         switch (c) {
             case '\b':
-                vga_buffer[--buffer_index] = 0;
+                if(buffer_index <= 0){
+                    buffer_index = 1;
+                }
+                vga_buffer[--buffer_index] = base_color << 8 | 0;
                 break;
             case '\t':
                 for(int i = 0; i < 4; i++){

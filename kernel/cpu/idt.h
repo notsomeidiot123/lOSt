@@ -1,3 +1,4 @@
+#pragma once
 extern void load_idt();
 extern void enable_int();
 extern void disable_int();

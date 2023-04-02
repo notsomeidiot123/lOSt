@@ -1,5 +1,6 @@
 #include "../graphics/vga.h"
 #include "../cpu/io.h"
+#include "../cpu/idt.h"
 
 #define KB_DATA 0x60
 #define KB_STATUS 0x64
@@ -60,6 +61,20 @@ int init_8042(){
         if(test_result != 0){
             kprintf("Error: PS_2 Mouse Encountered an error: %s\n", error_codes[test_result - 1]);
         }
+        outb(KB_COMMAND, 0xA8);
     }
+    outb(KB_COMMAND, 0xAE);
+
     return 0;
+}
+
+char *translated_kb_codes = 
+"\0\e1234567890-=\b\tqwertyuiop[]\n\x01\x61sdfghjkl;\'`\x02\\zxcvbnm,./\x03*\x04 \x05\x90\x91\x92\x93\x94\x95\x95\x96\x97\x98\x99\xa0\xa1\xc7\xc8\xc9\xbd\xc4\xc5\xc6\xbb\xc1\xc2\xc3\xc0\xbe\0\0\0\x9a\x9b\0\0\0";
+
+
+void ps2_handler(irq_registers_t *regs){
+    int scancode = inb(KB_DATA);
+    if(scancode < 0x80){
+        kprintf("%c", translated_kb_codes[scancode]);
+    }
 }

@@ -176,8 +176,19 @@ void irq_remap(){
     outb(0xa1, 0);
 }
 
+
+void software_int(irq_registers_t* regs){
+
+}
+
+
 extern void _irq_handler(irq_registers_t *regs){
     
+    if((unsigned char )regs->int_no == 0x80){
+        software_int(regs);
+        return;
+    }
+
     void (*handler)(irq_registers_t *r);
 
     handler = (void (*)(irq_registers_t*))_irq_handlers[regs->int_no-0x20];
