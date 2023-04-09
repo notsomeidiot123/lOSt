@@ -20,6 +20,11 @@ int padding = 1;
 
 vga_descriptor_t video_mode = {0, 1, 0x1, 80, 25};
 
+void clear_screen(){
+    kmemset((short* )vga_buffer, video_mode.xres * video_mode.yres*2, base_color << 8);
+    buffer_index = 0;
+}
+
 void kputc(char c){
     if(video_mode.colors == 1){
         char col = (char)base_color;
@@ -42,6 +47,7 @@ void kputc(char c){
                 buffer_index -= buffer_index % 80;
                 break;
             case '\e':
+                clear_screen();
                 buffer_index = 0;
                 break;
             case '\a':
@@ -53,7 +59,12 @@ void kputc(char c){
         }
 
     }
-    //implement scrolling with memcpy :)
+    if(buffer_index >= 80*25){
+        kmemcpy((short *)vga_buffer+80, (short *)vga_buffer, 80*25*2 - 160);
+        kmemset((short *)vga_buffer+(80*24), 160, base_color);
+        buffer_index = 80*24;
+    }
+    //implement scrolling with memcpy :) :finsihed:
 }
 
 void kputs(char *s){
@@ -126,8 +137,4 @@ void set_color(int color){
 }
 int get_color(){
     return base_color;
-}
-void clear_screen(){
-    kmemset((short* )vga_buffer, video_mode.xres * video_mode.yres*2, base_color << 8);
-    kputc('\e');
 }

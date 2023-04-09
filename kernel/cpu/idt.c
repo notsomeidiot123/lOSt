@@ -1,5 +1,6 @@
 #include "idt.h"
 #include "io.h"
+#include "../drivers/ps2.h"
 #include "../graphics/vga.h"
 
 extern void irq0();
@@ -176,9 +177,39 @@ void irq_remap(){
     outb(0xa1, 0);
 }
 
+/*
+INT TABLE FOR f0und (most syscalls based on linux)
+eax=1,
+exits process with error code ebx
+eax=2,
+forks current process, if non is active, starts a new process
+eax=3,
+puts ecx amount of characters from string edx to file descriptor ebx
+eax=4,
+reads ecx amount of characters from file descriptor ebx and stores at pointer edx
+
+
+
+*/
+
+//i would never do thing normally but im using the int to long typecasts to get rid of the warnings because
+//THE STUPID THING DOESNT UNDERSTAND WHAT IM TRYING TO CODE >:( I DONT WANT WARNINGS HIGHLIGHTED, JUST ERRORS >:(((
 
 void software_int(irq_registers_t* regs){
-
+    switch(regs->eax){
+        case 3:
+            for(int i = 0; i < regs->ecx; i++){
+                while(!ps_2_interrupt_fired);
+                *(char *)((long)regs->edx + i) = getchar();
+            }
+        case 4:
+            for(int i = 0; i < regs->ecx; i++){
+                kputc(*(char *)((long)regs->edx + i));
+            }
+        break;
+        default:
+        break;
+    }
 }
 
 

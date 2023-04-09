@@ -230,7 +230,7 @@ part2_start:
 
     jmp 0x8:jmpto
     jmp $
-mmap_type: db 0
+mmap_type: dw 0
 mmap_count: dw 0
 
 ;;;MUST BE DWORD-ALIGNED!!!
@@ -329,9 +329,11 @@ jmpto:
     mov ds, ax
     mov es, ax
     mov ss, ax
+    
+    
+    push word [mmap_type]
+    push word [mmap_count]
     push MMAP_PTR
-    push mmap_count
-    push mmap_type
     jmp 0x10000
     ; jmp $
     ; db "TEST"

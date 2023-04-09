@@ -259,7 +259,6 @@ global irq13
 global irq14
 global irq15
 global softint
-db "startirq"
 irq0:
 	cli
 	push byte 0

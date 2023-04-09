@@ -31,15 +31,23 @@ done
 echo
 cd obj
 ld ../../bin/kentry.o *.o ../../bin/idt.o -Ttext 0x10000 --oformat binary -melf_i386 -o ../../bin/base.o
+ls *.o
 cd ../../
 cat bin/bootloader.o bin/base.o >> bin/lOSt.bin
 
-qemu-img resize bin/lOSt.bin 512M
+qemu-img resize bin/lOSt.bin 128M
 
 echo "formatting:"
-parted bin/lOSt.bin mkpart primary fat32 1 25%\
+parted bin/lOSt.bin mkpart primary fat32 1 100%\
         set 1 boot on \
         set 1 lba on
+        
+qemu-img resize drives/data.hd 384M 
+
+mkfs.fat -F 32 drives/data.hd
+
+cat drives/data.hd >> bin/lOSt.bin
+qemu-img resize bin/lOSt.bin 512M
 parted bin/lOSt.bin mkpart primary fat32 25% 100%\
     set 1 boot on
 echo "finished"
@@ -49,6 +57,7 @@ qemu-system-i386 bin/lOSt.bin\
     -no-reboot\
     -no-shutdown\
     -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
+    -m 32M
     # -d int
 
 hexdump -C bin/lOSt.bin > dump.hd

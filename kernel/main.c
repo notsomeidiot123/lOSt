@@ -2,9 +2,10 @@
 #include "cpu/idt.h"
 #include "drivers/timer.h"
 #include "drivers/ps2.h"
+#include "memory/mmanager.h"
 
-extern void kmain(void *mmap_ptr, short mmap_count, char mmap_type){
-    set_color(0x80);
+extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
+    set_color(0x7);
     clear_screen();
     kprintf("[      ] Loading IDT");
     init_idt();
@@ -17,5 +18,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, char mmap_type){
     irq_install_handler(ps2_handler, 1);
     kprintf("\r[ DONE ]\n");
     pic_remask();
-    
-}
+    kprintf("Registering MMAP:\n");
+    init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
+    // kprintf("\ntest: count: %x, ptr: %x, type: %x", mmap_count, mmap_ptr, mmap_type);
+};
