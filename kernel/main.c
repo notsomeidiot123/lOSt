@@ -21,4 +21,10 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     kprintf("Registering MMAP:\n");
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
     // kprintf("\ntest: count: %x, ptr: %x, type: %x", mmap_count, mmap_ptr, mmap_type);
+    int *t = kmalloc(8, 0);
+    kfree(t);
+    t = kmalloc(1, 0);
+    kprintf("PTR: %x", t);
+    kfree(t);
+    debug_check_allocated();
 };

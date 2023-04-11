@@ -20,3 +20,6 @@ typedef struct page_entry{
 }page_entry_t;
 
 extern void init_memory(mmap_entry_t *mmap, int mmap_entries);
+extern void *kmalloc(int size, char permissions);
+extern void *kfree(void *ptr);
+extern void debug_check_allocated();

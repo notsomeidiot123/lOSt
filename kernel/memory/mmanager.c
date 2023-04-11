@@ -5,7 +5,7 @@ unsigned int max_address = 0;
 unsigned int total_usable = 0;
 
 page_entry_t *page_table = (page_entry_t*) 0x50000;
-int page_table_size;
+unsigned int page_table_size;
 
 
 int check_sorted(mmap_entry_t *mmap, int mmap_entries){
@@ -47,7 +47,7 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
             current_ent++;
         }
         if(i * 4096 < mmap[current_ent].base_low && i * 4096 > last_entry_max_address || i * 4096  < 0x00100000 || mmap[current_ent].region_type != 1){
-            page_table[i] = (page_entry_t){0, 1, 0, 0, 0, 0, 0, 1};
+            page_table[i] = (page_entry_t){1, 1, 0, 0, 0, 0, 0, 1};
             total_usable -= 4096;
         }
         else{
@@ -60,17 +60,48 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
 
 void reserve(void *address, int pages, char permissions){
     for(int i = ((long)address / 4096); i < pages; i++){
-        page_table[i] = (page_entry_t){0, 1, 0, 0, permissions & 0x4, permissions & 0x2, permissions & 0x1, 1};
+        page_table[i] = (page_entry_t){1, 1, 0, 0, permissions & 0x4, permissions & 0x2, permissions & 0x1, 1};
     }
 }
 
-void *kmalloc(int size){
+int check_free(int start, int size){
+    for(int i = start; i + start < start + size; i++){
+        if(page_table[i].used || page_table[i].unusable || page_table[i].reserved){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void *kmalloc(int size, char permissions){
     //search map starting at 0x100000/4096
     //while reserved or used, keep searching
     //check if there is enough room
     //  if no, continue searching from the end of the just-checked space
     //  if yes, continuously allocate memory by setting .used, .linked to next if not last, .linked to last if not first, and the proper permissions
     //return the address at the start of those linked entries
+    int start = 0;
+    for(int i = 0x100000/4096; i < page_table_size; i++){
+        if((page_table[i].used == 0) && !page_table[i].unusable && check_free(i, size)){
+            int addr = i * 4096;
+            for(int j = 0; j < size; j++){
+                page_entry_t ent = {0};
+                if(j < size - 1){
+                    ent.linked_to_next = 1;
+                }
+                if(j > 0){
+                    ent.linked_to_last = 1;
+                }
+                ent.used = 1;
+                ent.read = permissions & 0x4;
+                ent.write = permissions & 0x2;
+                ent.execute = permissions & 0x1;
+                page_table[i+j] = ent;
+                
+            }
+            return (void *)(long)addr;
+        }
+    }
     return 0;
 }
 
@@ -81,11 +112,34 @@ void *kfree(void *ptr){
     //  deallocate current entry
     //  switch and read next entry
     //return null
+    int start = (unsigned long)ptr/4096;
+    int i = start;
+    while(page_table[i].linked_to_last){
+        kprintf("back one\n");
+        i--;
+    }
+    // i--;
+    // kprintf("\n%x, %x\n", i, start);
+    page_entry_t last;
+    do{
+        last = page_table[i];
+        page_table[i++] = (page_entry_t){0};
+        kprintf("next: %d\n", page_table[i].linked_to_next);
+    }while(last.linked_to_next);
     return 0;
 }
 
-/*
-typedef struct page_entry{
+void debug_check_allocated(){
+    int allocated_count = 0;
+    for(int i = 0; i < page_table_size; i++){
+        if(page_table[i].used && !(page_table[i].unusable || page_table[i].reserved)){
+            allocated_count++;
+        }
+    }
+    kprintf("Debug: There are currently %d pages allocated", allocated_count);
+}
+
+/*typedef struct page_entry{
     char used : 1;
     char unusable : 1;
     char linked_to_next:1;
