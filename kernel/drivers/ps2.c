@@ -116,6 +116,10 @@ char *shifted_nums = ")!@#$%^&*(";
 
 char last_char = 0;
 char ps_2_interrupt_fired = 0;
+unsigned char last_key = 0;
+unsigned char get_lastkey(){
+    return last_key;
+}
 char getchar(){
     ps_2_interrupt_fired = 0;
     return last_char;
@@ -185,6 +189,7 @@ void ps2_handler(irq_registers_t *regs){
                 break;
         }
         ps_2_interrupt_fired = 1;
+        last_key = scancode;
         last_char = get_ascii(translated_kb_codes[scancode], shift_down | caps_lock, 0);
         kprintf("%c", last_char);
         

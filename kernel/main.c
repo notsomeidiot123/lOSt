@@ -3,6 +3,7 @@
 #include "drivers/timer.h"
 #include "drivers/ps2.h"
 #include "memory/mmanager.h"
+#include "drivers/floppy.h"
 
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     set_color(0x7);
@@ -20,10 +21,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     pic_remask();
     kprintf("Registering MMAP:\n");
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
-    // kprintf("\ntest: count: %x, ptr: %x, type: %x", mmap_count, mmap_ptr, mmap_type);
-    int *t = kmalloc(8, 0);
-    kfree(t);
-    t = kmalloc(1, 0);
-    kprintf("PTR: %x", t);
-    kfree(t);
+    kprintf("Starting FDC:\n");
+    init_floppy();
+    
 };
