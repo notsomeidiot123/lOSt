@@ -6,5 +6,7 @@ mov ecx, len
 mov edx, msg
 int 0x80
 
+jmp $
+
 msg: db "Hello, World!\n"
 len equ $ - msg

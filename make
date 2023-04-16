@@ -26,6 +26,13 @@ for d in ./*/; do
                 gcc $f $CFLAGS obj/$END.o
             # fi
         done
+        for f in $d*.cpp; do
+            # I give up. it won't compile anything either way if it's an invalid file, so i guess im safe... for now
+            SUF=".cpp"
+            SUF_REM=${f%"$SUF"}
+            END=${SUF_REM#"$d"}
+            g++ $f $CFLAGS obj/$END.o
+        done
     fi
 done
 echo

@@ -26,5 +26,4 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     t = kmalloc(1, 0);
     kprintf("PTR: %x", t);
     kfree(t);
-    debug_check_allocated();
 };

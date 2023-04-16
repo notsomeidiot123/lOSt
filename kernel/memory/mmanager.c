@@ -32,7 +32,7 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
         
         max_address = (limit > max_address) ? limit : max_address;
         // total_usable += mmap[i].length_low * (mmap[i].region_type == 1);
-        total_usable = max_address;
+        total_usable = max_address - 0x100000/4096;
     }
     
     sort_mmap(mmap, mmap_entries);
@@ -115,7 +115,6 @@ void *kfree(void *ptr){
     int start = (unsigned long)ptr/4096;
     int i = start;
     while(page_table[i].linked_to_last){
-        kprintf("back one\n");
         i--;
     }
     // i--;
@@ -124,19 +123,19 @@ void *kfree(void *ptr){
     do{
         last = page_table[i];
         page_table[i++] = (page_entry_t){0};
-        kprintf("next: %d\n", page_table[i].linked_to_next);
     }while(last.linked_to_next);
     return 0;
 }
 
-void debug_check_allocated(){
+int get_used_pages(){
     int allocated_count = 0;
     for(int i = 0; i < page_table_size; i++){
         if(page_table[i].used && !(page_table[i].unusable || page_table[i].reserved)){
             allocated_count++;
         }
     }
-    kprintf("Debug: There are currently %d pages allocated", allocated_count);
+    // kprintf("Debug: There are currently %d pages allocated", allocated_count);
+    return allocated_count;
 }
 
 /*typedef struct page_entry{
