@@ -19,6 +19,10 @@ typedef struct page_entry{
     char reserved:1;
 }page_entry_t;
 
+#define MEMORY_PERM_READ 0x4
+#define MEMORY_PERM_WRTE 0x2
+#define MEMORY_PERM_EXEC 0x1
+
 extern void init_memory(mmap_entry_t *mmap, int mmap_entries);
 extern void *kmalloc(int size, char permissions);
 extern void *kfree(void *ptr);
