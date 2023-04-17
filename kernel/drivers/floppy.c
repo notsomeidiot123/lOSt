@@ -63,6 +63,7 @@ char irq_hit = 0;
 char locked_cal = 0;
 
 void floppy_irq_handler(irq_registers_t *regs){
+    kprintf("Floppy IRQ Hit!\n");
     irq_hit = 0;
 }
 
@@ -85,7 +86,7 @@ void recal_fdc(){
 int reset_controller(){
     unsigned char val = inb(DIGITAL_OUTPUT);
     outb(DIGITAL_OUTPUT, 0x38);
-    // while(!irq_hit);
+    // while(!irq_hit); //does not fire in the emulator
     if(!locked_cal){
         recal_fdc();
     }
@@ -94,7 +95,6 @@ int reset_controller(){
 }
 
 char *dma_data_ptr;
-
 int init_floppy(){
     while( (inb(MSR) & 0xc0) != 0x80 ){
         reset_controller();
@@ -138,6 +138,34 @@ int init_floppy(){
     
     outb(DIGITAL_OUTPUT, inb(DIGITAL_OUTPUT) & 0xfc); //go back to drive select one
     kprintf("Finished Initializing FDC\nDMA PTR: 0x%x!\n", dma_data_ptr);
+
+    return 0;
+}
+
+char *floppy_read(int LBA, char drive){
+    
+    int cyl = 0;
+    int head = 0;
+    int sector = 0;
+
+    lba_to_chs_floppy(LBA, &cyl, &head, &sector);
+
+    char dor = inb(DIGITAL_OUTPUT);
+
+    dor &= 0xfc;
+    outb(DIGITAL_OUTPUT, dor | (drive % 4));
+
+    while( (inb(MSR) & 0xc0) != 0x80 ){
+        reset_controller();
+    }
+
+    outb(DATA_FIFO, READ_DATA | 0x80 | 0x40);
+    outb(DATA_FIFO, head << 2 | drive);
+    outb(DATA_FIFO, CYL);
+    outb(DATA_FIFO, head << 2 | drive);
+    outb(DATA_FIFO, sector);
+    outb(DATA_FIFO, 2);
+    //next is end of track? how to get size?
 
     return 0;
 }
