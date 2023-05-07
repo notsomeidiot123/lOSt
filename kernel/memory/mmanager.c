@@ -3,6 +3,7 @@
 
 unsigned int max_address = 0;
 unsigned int total_usable = 0;
+bda_t *bda;
 
 page_entry_t *page_table = (page_entry_t*) 0x50000;
 unsigned int page_table_size;
@@ -56,6 +57,7 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
         }
     }
     kprintf("Total Usable Memory  : %dMB/%dMB\n", total_usable/1024/1024, max_address/1024/1024);
+    bda = (bda_t*)0x400;
 }
 
 void reserve(void *address, int pages, char permissions){
