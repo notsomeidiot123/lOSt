@@ -7,6 +7,7 @@
 #include "drivers/floppy.h"
 #include "drivers/serial.h"
 #include "memory/string.h"
+#include "drivers/ata.h"
 
 
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
@@ -29,14 +30,23 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // init_floppy();
     // kprintf("Floppy Disc Controller Initialization Finished\n");
     call_cpuid();
-    kprintf("[      ] Initializing Serial Ports");
     char serial_res = serial_init();
-    if(serial_res){
-        kprintf("\r[ ERROR]\n[Serial]: Non-Fatal Error: at least one serial port found to be Faulty! ports: %s\n", ltostr(serial_res, 2, 0));
-    }
-    else{
-        kprintf("\r[ DONE ]\n");
-    }
+
+    kprintf("Initializing Serial Ports\n");
+    
+    kprintf("Finished\n");
+    // char *buf = kmalloc(1, 7);
+    // padding = 2;
+    // ata_identify();
+    // ata_read28((unsigned short *)buf, 0, 0, 1);
+    // for(int i = 0; i < 32; i++){
+    //     for(int j = 0; j < 16; j++){
+    //         kprintf("%x ", (unsigned char)buf[i + j]);
+    //     }
+    //     kprintf("\n");
+    // }
+    // short *test = (short *)0xb8000;
+    // *test = 0x0f41;
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

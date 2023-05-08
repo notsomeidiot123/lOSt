@@ -64,7 +64,8 @@ qemu-system-i386 bin/lOSt.bin\
     -no-reboot\
     -no-shutdown\
     -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
-    -m 32M
+    -m 32M\
+    -serial mon:stdio
     # -d int
 
 hexdump -C bin/lOSt.bin > dump.hd

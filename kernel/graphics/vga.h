@@ -1,3 +1,4 @@
+//going to keep here for backwards compatability until I refactor ALL code
 extern void kputc(char c);
 extern void kputs(char *s);
 extern void kputd(int num);
