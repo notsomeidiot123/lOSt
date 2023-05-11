@@ -2,6 +2,8 @@
 #include "io.h"
 #include "../drivers/ps2.h"
 #include "../graphics/vga.h"
+#include "../drivers/serial.h"
+#include "../drivers/ps2.h"
 
 extern void irq0();
 extern void irq1();

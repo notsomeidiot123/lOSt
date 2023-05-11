@@ -11,6 +11,7 @@ typedef struct mmap_entry{
 }mmap_entry_t;
 
 typedef struct page_entry{
+    uint8_t pid;
     char used : 1;
     char unusable : 1;
     char linked_to_next:1;

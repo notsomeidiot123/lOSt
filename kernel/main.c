@@ -8,10 +8,12 @@
 #include "drivers/serial.h"
 #include "memory/string.h"
 #include "drivers/ata.h"
-
+#include "cpu/ksec.h"
 
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     set_color(0x7);
+    char serial_res = serial_init();
+    kprintf("Finished\n");
     clear_screen();
     kprintf("[      ] Loading IDT");
     init_idt();
@@ -30,23 +32,10 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // init_floppy();
     // kprintf("Floppy Disc Controller Initialization Finished\n");
     call_cpuid();
-    char serial_res = serial_init();
-
-    kprintf("Initializing Serial Ports\n");
     
-    kprintf("Finished\n");
-    // char *buf = kmalloc(1, 7);
-    // padding = 2;
-    // ata_identify();
-    // ata_read28((unsigned short *)buf, 0, 0, 1);
-    // for(int i = 0; i < 32; i++){
-    //     for(int j = 0; j < 16; j++){
-    //         kprintf("%x ", (unsigned char)buf[i + j]);
-    //     }
-    //     kprintf("\n");
-    // }
-    // short *test = (short *)0xb8000;
-    // *test = 0x0f41;
+
+    short *test = (short *)0xb8000;
+    *test = 0x0f41;
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

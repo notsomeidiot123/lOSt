@@ -1,9 +1,10 @@
 #include "mmanager.h"
 #include "../graphics/vga.h"
+#include <stdint.h>
 
 unsigned int max_address = 0;
 unsigned int total_usable = 0;
-bda_t *bda;
+bda_t *bda = (bda_t *)0x400;
 
 page_entry_t *page_table = (page_entry_t*) 0x50000;
 unsigned int page_table_size;
@@ -57,7 +58,6 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
         }
     }
     kprintf("Total Usable Memory  : %dMB/%dMB\n", total_usable/1024/1024, max_address/1024/1024);
-    bda = (bda_t*)0x400;
 }
 
 void reserve(void *address, int pages, char permissions){
@@ -98,6 +98,7 @@ void *kmalloc(int size, char permissions){
                 ent.read = permissions & 0x4;
                 ent.write = permissions & 0x2;
                 ent.execute = permissions & 0x1;
+                ent.pid = 0;
                 page_table[i+j] = ent;
                 
             }
@@ -138,6 +139,33 @@ int get_used_pages(){
     }
     // kprintf("Debug: There are currently %d pages allocated", allocated_count);
     return allocated_count;
+}
+
+void *kumalloc(int size_pgs, char perms, uint8_t pid){
+    int start = 0;
+    for(int i = 0x100000/4096; i < page_table_size; i++){
+        if((page_table[i].used == 0) && !page_table[i].unusable && check_free(i, size_pgs)){
+            int addr = i * 4096;
+            for(int j = 0; j < size_pgs; j++){
+                page_entry_t ent = {0};
+                if(j < size_pgs - 1){
+                    ent.linked_to_next = 1;
+                }
+                if(j > 0){
+                    ent.linked_to_last = 1;
+                }
+                ent.used = 1;
+                ent.read = perms & 0x4;
+                ent.write = perms & 0x2;
+                ent.execute = perms & 0x1;
+                ent.pid = pid;
+                page_table[i+j] = ent;
+                
+            }
+            return (void *)(long)addr;
+        }
+    }
+    return 0;
 }
 
 /*typedef struct page_entry{

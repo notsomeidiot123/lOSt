@@ -3,7 +3,7 @@
 #include "../cpu/io.h"
 #include "../memory/string.h"
 #include <stdarg.h>
-
+#include "../cpu/ksec.h"
 
 struct com_ports{
     uint16_t com[4];
@@ -11,6 +11,7 @@ struct com_ports{
         void *listeners[4];
         char listener_data_buffer[4][32];
         int listner_data_index[4];
+        uint32_t listner_keys[4];
         uint8_t virtual:1;
     }com_desc[4];
 }ports;
@@ -139,6 +140,22 @@ uint8_t serial_read(int port){
         return inb(ports.com[port] DATA);
     }
     return 0;
+}
+
+
+uint32_t register_serial_listener(void *listener, int port, int pid){
+    int key = 0;
+    int index = 0;
+    for(int i = 0; i < 4; i++){
+        if (ports.com_desc->listeners[i] == 0) {
+            index = i;
+            break;
+        }
+    }
+    ports.com_desc->listeners[index] = listener;
+    ports.com_desc->listner_data_index[index] = 0;
+    ports.com_desc->listner_keys[index] = gen_driver_key(pid, (long)listener);
+    return ports.com_desc->listner_keys[index];
 }
 
 int base_color;
