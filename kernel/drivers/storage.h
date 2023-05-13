@@ -1,4 +1,4 @@
-
+#pragma once
 
 enum Drive_Types{
     DRIVE_NULL,
@@ -8,15 +8,6 @@ enum Drive_Types{
     DRIVE_ATAPI,
     DRIVE_SATA,
     DRIVE_USB,
-};
-
-enum Storage_Errors{
-    DE_NONE,
-    DE_TOO_MANY_DRIVES,
-    DE_OUT_OF_SPACE,
-    DE_INVALID_DRIVE,
-    DE_OB,
-    DE_UNKNOWN
 };
 
 typedef struct drive{
@@ -31,3 +22,5 @@ typedef struct drive{
     }flags;
     void *extended_struct;
 }drive_t;
+
+extern int register_drive(drive_t drive_to_register);

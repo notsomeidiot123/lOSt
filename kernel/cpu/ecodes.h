@@ -1,0 +1,9 @@
+enum EXIT_CODES{
+    E_NO_ERR,
+    DE_TOO_MANY_DRIVES,
+    DE_OUT_OF_SPACE,
+    DE_INVALID_DRIVE,
+    DE_OB,
+    E_UNKNOWN,
+    E_NOT_IMPLEMENTED,
+};
