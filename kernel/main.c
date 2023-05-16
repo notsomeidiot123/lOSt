@@ -33,6 +33,9 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // kprintf("Floppy Disc Controller Initialization Finished\n");
     call_cpuid();
     
+    //WHO KNEW WHEN COMPILING FOR 32 BIT, INTS AND LONGS ARE THE SAME SIZE???
+    //im kinda dumb
+    kprintf("Int: %d == Long:%d ? %s", sizeof(int), sizeof(long), sizeof(int) == sizeof(long) ? "True" : "False");
 
     short *test = (short *)0xb8000;
     *test = 0x0f41;

@@ -5,11 +5,12 @@
 #include <stdint.h>
 
 
-drive_t drives[16] = { 0 };
+drive32_t *filesystems[26] = { 0 };
+drive32_t *drives[26] = { 0 };
 
-int register_drive(drive_t drive_to_register){
-    for(int i = 0; i < 16; i++){
-        if(drives[i].type == 0){
+int register_drive(drive32_t *drive_to_register){
+    for(int i = 0; i < 26; i++){
+        if(drives[i] == 0){
             drives[i] = drive_to_register;
             return 0;
         }
@@ -17,8 +18,12 @@ int register_drive(drive_t drive_to_register){
     return -1;
 }
 
+int read_file(uint16_t *buffer, char *filename){
+    return 0;   
+}
+
 int read_from_drive(uint16_t *buffer, int sectors, int start, int drive){
-    switch(drives[drive].type){
+    switch(drives[drive]->type){
         case DRIVE_NULL:
             return DE_INVALID_DRIVE;
         case DRIVE_PATA:
