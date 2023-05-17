@@ -4,6 +4,7 @@
 #include "drivers/timer.h"
 #include "drivers/ps2.h"
 #include "memory/mmanager.h"
+#include "cpu/ecodes.h"
 #include "drivers/floppy.h"
 #include "drivers/serial.h"
 #include "memory/string.h"
@@ -24,7 +25,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     init_8042();
     master_pic_mask.data.ps2kb = 0;
     irq_install_handler(ps2_handler, 1);
-    kprintf("\r[ DONE ]\n");
+    kprintf("\r[ DONE ]\n"); 
     pic_remask();
     kprintf("Registering MMAP:\n");
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
@@ -32,11 +33,9 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // init_floppy();
     // kprintf("Floppy Disc Controller Initialization Finished\n");
     call_cpuid();
-    
-    //WHO KNEW WHEN COMPILING FOR 32 BIT, INTS AND LONGS ARE THE SAME SIZE???
-    //im kinda dumb
-    kprintf("Int: %d == Long:%d ? %s", sizeof(int), sizeof(long), sizeof(int) == sizeof(long) ? "True" : "False");
-
+    kprintf("[      ] Identifying PATA Drives");
+    int ata_res = ata_identify_all();
+    kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
     short *test = (short *)0xb8000;
     *test = 0x0f41;
 };

@@ -37,7 +37,12 @@ typedef struct ata_drive32_s{
     drive32_t drive_s;
     uint16_t base_port;
     uint16_t command_port;
-}ata_drive32_s;
+    char serial_number[20];
+    struct ata_flags_s{
+        uint8_t slave:1;
+        uint8_t lba48:1;
+    }flags;
+}ata_drive32_t;
 
 
 typedef struct fs32_s{

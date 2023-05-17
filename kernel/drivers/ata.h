@@ -1,0 +1,1 @@
+extern int ata_identify_all();

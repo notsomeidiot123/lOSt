@@ -1,5 +1,6 @@
 //change read/write to be loaded as helper processes with highest priority when we switch back to multitasking
 #include "storage.h"
+#include "../memory/mmanager.h"
 #include "../cpu/io.h"
 #include "../graphics/vga.h"
 #include "../cpu/idt.h"
@@ -31,9 +32,18 @@
 #define GET_SZ48L(a) a[100] | (a[101] << 8)
 #define GET_SZ48H(a) a[102] | (a[103] << 8)
 
-
+int ata_identify(ata_drive32_t *drive){
+    
+    return 0;
+}
 
 int ata_identify_all(){
-    
+    ata_drive32_t *master = kmalloc(1, 7);
+    master->base_port = 0x1f0;
+    master->command_port = 0x3f6;
+    int res = ata_identify(master);
+    if(res){
+        return res;
+    }
     return E_NO_ERR;
 }
