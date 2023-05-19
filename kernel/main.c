@@ -36,6 +36,11 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     kprintf("[      ] Identifying PATA Drives");
     int ata_res = ata_identify_all();
     kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
+    
+    if(ata_res == E_NOT_IMPLEMENTED){
+        kprintf("\t->Driver not implemented!\n");
+    }
+    
     short *test = (short *)0xb8000;
     *test = 0x0f41;
 };

@@ -32,8 +32,7 @@ init:
     mov [boot_disk], dl
     pop ds
     mov [partition_segment], ds
-    mov bx,  strtab.start
-    call Strs.printr
+    
     jmp unreal
     jmp $
 tmp_gdt_info:
@@ -92,17 +91,28 @@ load_part2:
     xor ebx, ebx
     mov esi, [partition]
     ; jmp $
-    mov ah, 0x2
-    mov al, 7
-    mov ch, [esi + 3]
-    mov cl, [esi + 2]
-    add cl, 1
-    mov dh, [esi + 1]
+    mov ah, 0x42
     mov dl, [boot_disk]
-    mov bx, 0x7e00
+    ; jmp $
+    mov si, DAP
     int 0x13
     jmp part2_start
     jmp $
+db "DAP", 0
+DAP:
+    .size:
+        db 0x10
+    .res:
+        db 0
+    .sectors:
+        dw 7
+    .offset:
+        dw 0x7e00
+    .segemnt:
+        dw 0
+    .start:
+        dd 0x801
+        dd 0
 Strs:
     .printr:
         mov si, bx
@@ -190,27 +200,35 @@ part_cyl: db 0
 strtab:
     .start:             db "Booting lOSt... Please be paitent!", 0xa, 0xd, 0
     .no_a20:            db "Cannot flip a20 line, Aborting", 0xa, 0xd, 0
-    .need_e820          db "Required BIOS Function e820 not supported!", 0xa, 0xd, 0
+    .need_e820:          db "Required BIOS Function e820 not supported!", 0xa, 0xd, 0
 times 508 - ($ - $$) db 0
 end_boot: db 0x5a
 requested_size: db 0x30
-db 0x55, 0xaa
+dw 0xaa55
 ME820_MAGIC EQU 0x534d4150;SMAP
 ELF_MAGIC EQU 0x7f454c46
 jmp $
 part2_start:
+    mov bx,  strtab.start
+    call Strs.printr
     .mmap:
         call get_mmap
     ;read kernel
-    mov ax, 0x1000
-    mov es, ax
-    xor bx, bx
-    mov ah, 0x2
-    mov al, [requested_size]
-    mov ch, [esi + 3]
-    mov cl, [esi + 2]
-    add cl, 8;this bootloader is 4096 bytes long, 8 sectors. add 8 to get kentry.o
-    mov dh, [esi + 1]
+    ; mov ax, 0x1000
+    ; mov es, ax
+    ; xor bx, bx
+    ; mov ah, 0x2
+    ; mov al, [requested_size]
+    ; mov ch, [esi + 3]
+    ; mov cl, [esi + 2]
+    ; add cl, 8;this bootloader is 4096 bytes long, 8 sectors. add 8 to get kentry.o
+    ; mov dh, [esi + 1]
+    mov word [DAP.segemnt], 0x1000
+    mov word [DAP.offset], 0
+    add dword [DAP.start], 7
+    mov byte [DAP.sectors], 0x40
+    mov ah, 0x42
+    mov si, DAP
     mov dl, [boot_disk]
     int 0x13
 

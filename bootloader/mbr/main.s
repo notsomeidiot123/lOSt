@@ -1,84 +1,176 @@
-start:
-    org 0x600
-    bits 16
-reloc:
-    mov ax, 0x800
-    mov bp, ax
-    mov sp, ax
+[org 0x600]
+bits 16
+;;NOTE SEGMENT ADDRESSING IS [SEGMENT * 16 + OFFSET]
+;;FOR EXAMPLE: ES:DI ES=0X0111 DI=0X0055
+;;THE PHYSICAL ADDRESS WOULD BE 0X11165
+power:
     mov ax, 0
-    mov si, 0x7c00
     mov ds, ax
     mov es, ax
+    mov si, 0x7c00
     mov di, 0x600
-    mov cx, 128
-    repne movsd
-    jmp 0:read_partitions
-read_partitions:
-    mov cx, 0x200
-    mov di, 0x7c00
-    mov eax, 0
-    rep stosw
-    mov si, part_0
-    .l0:
-        mov al, [ds:si]
-        and al, 0x80
-        jge .boot
-        cmp si, part_3
-        jge no_bootable
-        add si, 0x10
-        jmp .l0
-    .boot:
-        sub si, 0x10
-        mov ch, [ds:si + 3]
-        mov cl, [ds:si + 2]
-        mov dh, [ds:si + 1]
-        mov ax, 0
-        mov es, ax
-        mov bx, 0x7c00
-        mov ah, 0x2
-        mov al, 1
-        int 0x13
-        cmp word [0x7c00 + 510], 0xaa55
-        jne boot_error
-        jmp 0:0x7c00
-        jmp boot_error
-    jmp $
+    mov cx, 256
+    rep movsw
+    jmp 0x0:set_stack
+    set_stack:
+        mov ax, 0x9000 ;set stack pointer
+        mov bp, ax
+        mov sp, bp
+        xor ax, ax
+    mov [bootdisc], dl
+    call clear_regs
+    ; call relocate
+    ; jmp 0:$-0x7c00+0x600 + 1
+    ;print string
+    mov bx, mark
+    call printstr
 
-no_bootable:
-    mov ax, 0
+    call clear_gp
+    mov eax, Part_0; base of the partition table
+    looppart:
+        cmp cx, 4
+        je noboot;
+        cmp byte [eax], 0x80
+        jge load_os
+        inc cx
+        add ax, 16 
+        jmp looppart;loop until found bootable sector
+        ;TODO: CHANGE TO ALLOW SELECTION OF BOOTED PARTITION
+        ;IDEA: GET ONE KEY INPUT, WHILE CHAR INP > '4' || INP < '0' GETKEY()
+        ;if multiple bootable partitions found, change offset to proper number
+        ;---------------;
+        ;select: 6551   ;
+        ;booting part. 1;
+        ;//more boot\\  ;
+        ;-not-my-problem;
+    load_os:
+        push cx
+        mov [offset], eax
+        cmp byte [bootdisc], 0x80
+        jge .harddisk
+        jmp .floppy
+
+        .harddisk:
+
+            mov ah, 0x41
+            mov dl, [bootdisc]
+            mov bx, 0x55aa
+            int 13h
+            jc noboot
+            and cx, 1
+            cmp cx, 1
+            jne noboot
+            
+            mov eax, [offset]
+            mov ebx, [eax + 8]
+            mov [DAP.start],ebx
+            mov ah, 0x42
+            mov dl, [bootdisc]
+            mov si, DAP
+            int 13h
+            jc noboot
+            mov dl, [bootdisc]
+            pop cx
+            mov si, [offset]
+            jmp 0:PartBoot
+            jmp $
+        .floppy:
+            mov bx, bfloppy
+            call printstr
+            jmp $
+        jmp $
+    noboot:
+        mov bx, nobootstr
+        call printstr
+        jmp $
+
+jmp $
+    
+clear_regs:
+    xor ax, ax
+    xor bx, bx
+    xor cx, cx
+    xor dx, dx
+    ;clear index registers
+    mov si, ax
+    mov di, ax
+    ;clear segment registers
     mov ds, ax
-    mov si, strings.no_bootable
-    mov ah, 0xe
-    .l0:
-        lodsb
-        cmp al, 0
-        je .l0f
-        int 0x10
-        jmp .l0
-    .l0f:
-    jmp $
-boot_error:
-    mov ax, 0
+    mov ss, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    ret
+clear_gp:
+    xor ax, ax
+    xor bx, bx
+    xor cx, cx
+    xor dx, dx
+clear_index:
+    push ax
+    xor ax, ax
+    mov si, ax
+    mov di, ax
+    pop ax
+    ret
+clear_stack:
+    push ax
+    xor ax, ax
+    mov sp, ax
+    mov bp, ax
+    pop ax
+    ret
+clear_segement:
+    push ax
+    xor ax, ax
     mov ds, ax
-    mov si, strings.boot_error
-    mov ah, 0xe
-    .l0:
-        lodsb
-        cmp al, 0
-        je .l0f
-        int 0x10
-        jmp .l0
-    .l0f:
+    mov ss, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    pop ax
+    ret
+
+hang:
     jmp $
-strings:
-    .no_bootable:   db "lOStMBR:", 0xa, "Error: No bootable partitions!", 0xa, 0xd, 0
-    .boot_error:    db "lOStMBR:", 0xa, "Error: lOStMBR ran into an error while booting!", 0xa, 0xd, 0x0
-times 440 - ($-$$) db 0
-db "lOSt"
-dw 0
-part_0:
-    .flags:
+printstr:
+    mov ah, 0xe
+    mov si, bx
+    .strloop:
+        lodsb
+        or al, al
+        jz .strret
+        int 0x10
+        jmp .strloop
+    .strret:
+        ret
+
+bfloppy: db "BOOTING FROM FLOPPY DISK", 0xa, 0xd, 0x0
+nobootstr: db "NO BOOTABLE PARTITION FOUND", 0xa, 0xd, 0x0
+mark: db "KIMINOMBR v1.1.0", 0xa, 0xd, 0
+PartBoot equ 0x7c00
+bootdisc db 0
+offset dd 0
+DAP:
+    .size:
+        db 0x10
+    .res:
         db 0
+    .sectors:
+        dw 1
+    .offset:
+        dw PartBoot
+    .segemnt:
+        dw 0
+    .start:
+        dd 0
+        dd 0
+times 440-($-$$) db 0
+db 'K', 'I','M','I'
+dw 0
+Part_0:
+    .flags:
+        db 0x0;bootable offset 0
     .start_head:
         db 0
     .start_sector:
@@ -86,7 +178,7 @@ part_0:
     .start_cyl:
         db 0
     .sys_id:
-        db 0 ;0x7f - custom OS
+        db 0x0
     .end_head:
         db 0
     .end_sector:
@@ -97,9 +189,67 @@ part_0:
         dd 0
     .size:
         dd 0
-part_1: times 16 db 0
-part_2: times 16 db 0
-part_3: times 16 db 0
-end_sector_one:
-    times 510 - ($ - $$) db 0
-    db 0x55, 0xaa
+Part_1:
+    .flags:
+        db 0;bootable offset 0
+    .start_head:
+        db 0
+    .start_sector:
+        db 0
+    .start_cyl:
+        db 0
+    .sys_id:
+        db 0
+    .end_head:
+        db 0
+    .end_sector:
+        db 0
+    .end_cyl:
+        db 0
+    .start_LBA:
+        dd 0
+    .size:
+        dd 0
+Part_2:
+    .flags:
+        db 0;bootable offset 0
+    .start_head:
+        db 0
+    .start_sector:
+        db 0
+    .start_cyl:
+        db 0
+    .sys_id:
+        db 0
+    .end_head:
+        db 0
+    .end_sector:
+        db 0
+    .end_cyl:
+        db 0
+    .start_LBA:
+        dd 0
+    .size:
+        dd 0
+Part_3:
+    .flags:
+        db 0;bootable offset 0
+    .start_head:
+        db 0
+    .start_sector:
+        db 0
+    .start_cyl:
+        db 0
+    .sys_id:
+        db 0
+    .end_head:
+        db 0
+    .end_sector:
+        db 0
+    .end_cyl:
+        db 0
+    .start_LBA:
+        dd 0
+    .size:
+        dd 0
+db 0x55, 0xaa

@@ -6,4 +6,5 @@ enum EXIT_CODES{
     DE_OB,
     E_UNKNOWN,
     E_NOT_IMPLEMENTED,
+    E_TIMEOUT,
 };
