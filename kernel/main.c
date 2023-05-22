@@ -43,6 +43,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     
     short *test = (short *)0xb8000;
     *test = 0x0f41;
+    
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

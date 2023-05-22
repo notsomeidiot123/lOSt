@@ -4,7 +4,8 @@ enum Drive_Types{
     DRIVE_NULL,
     DRIVE_VIRT,
     DRIVE_FLOPPY,
-    DRIVE_PATA,
+    DRIVE_PATA28,
+    DRIVE_PATA48,
     DRIVE_ATAPI,
     DRIVE_SATA,
     DRIVE_USB,
@@ -18,6 +19,7 @@ enum Filesystem_Types{
     FS_EXT2  
 };
 
+//another example of why we don't write code at 3 am
 typedef struct drive32_s{
     char number;
     char type;
@@ -28,7 +30,6 @@ typedef struct drive32_s{
         char contains_pt:1;
         char reserved:4;
     }flags;
-    void *extended_struct;
     uint32_t size_low;
     uint32_t size_high;
 }drive32_t;
@@ -55,8 +56,11 @@ typedef struct fs32_s{
         uint8_t removable:1;
         uint8_t res:4;
     }flags;
+    uint32_t start_low;
+    uint32_t start_high;
     uint32_t size_low;
     uint32_t size_high;
 }filesystem32_t;
 
 extern int register_drive(drive32_t *drive_to_register);
+extern int get_drive_count();

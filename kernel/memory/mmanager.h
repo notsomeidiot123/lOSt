@@ -182,4 +182,5 @@ extern void init_memory(mmap_entry_t *mmap, int mmap_entries);
 extern void *kmalloc(int size, char permissions);
 extern void *kfree(void *ptr);
 extern int get_used_pages();
+extern int get_ram_size();
 extern bda_t *bda;

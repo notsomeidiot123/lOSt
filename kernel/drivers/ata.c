@@ -5,6 +5,7 @@
 #include "../graphics/vga.h"
 #include "../cpu/idt.h"
 #include "../cpu/ecodes.h"
+#include "../memory/string.h"
 #include "timer.h"
 #include <stdint.h>
 
@@ -72,6 +73,7 @@ int poll_drive(uint16_t port, uint8_t term, uint8_t request){
     return 0;
 }
 
+//restructre to not require master drive
 int ata_identify(ata_drive32_t *drive){
     uint16_t base_port = drive->base_port;
     uint16_t command_port = drive->base_port;
@@ -95,12 +97,59 @@ int ata_identify(ata_drive32_t *drive){
     for(int i = 0; i < 256; i++){
         buffer[i] = inb(base_port DATA);
     }
-    kprintf("        %x", (GET_SZ28(buffer)));
+    drive->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
+    drive->drive_s.flags.removable = 0;
+    if(IS_LBA48(buffer)){
+        drive->drive_s.size_high = GET_SZ48H(buffer);
+        drive->drive_s.size_low = GET_SZ48L(buffer);
+        drive->drive_s.type = DRIVE_PATA48;
+    }
+    else{
+        drive->drive_s.size_low = GET_SZ28(buffer);
+        drive->drive_s.type = DRIVE_PATA28;
+    }
+    register_drive((drive32_t * )drive);
+    kfree(buffer);
+        
+    outb(base_port DRIVE_HEAD, 0xB0 | drive->flags.slave);
+    outb(base_port SECTOR_COUNT, 0);
+    outb(base_port LBA_LOW, 0);
+    outb(base_port LBA_MID, 0);
+    outb(base_port LBA_HIH, 0);
+    outb(base_port COMMAND, IDENTIFY);
+    if(inb(base_port STATUS) == 0){
+        return 0;
+    }
+    ata_drive32_t* slave = kmalloc(1, 7);
+    clearmem(slave, sizeof(ata_drive32_t));
+    slave->base_port = drive->base_port;
+    slave->command_port = drive->command_port;
+    slave->flags.slave = 1;
+    buffer = kmalloc(1, 7);
+    for(int i = 0; i < 256; i++){
+        buffer[i] = 0;
+    }
+    for(int i = 0; i < 256; i++){
+        buffer[i] = inb(base_port DATA);
+    }
+    slave->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
+    slave->drive_s.flags.removable = 0;
+    if(IS_LBA48(buffer)){
+        slave->drive_s.size_high = GET_SZ48H(buffer);
+        slave->drive_s.size_low = GET_SZ48L(buffer);
+        slave->drive_s.type = DRIVE_PATA48;
+    }
+    else{
+        slave->drive_s.size_low = GET_SZ28(buffer);
+        slave->drive_s.type = DRIVE_PATA28;
+    }
+    // kprintf("%x", slave->drive_s.size_low);
     return 0;
 }
 
 int ata_identify_all(){
     ata_drive32_t *master = kmalloc(1, 7);
+    clearmem(master, sizeof(ata_drive32_t));
     master->base_port = 0x1f0;
     master->command_port = 0x3f6;
     int res = ata_identify(master);
@@ -108,4 +157,20 @@ int ata_identify_all(){
         return res;
     }
     return E_NO_ERR;
+}
+
+void wait_ready(ata_drive32_t *drive){
+    while(!(inb(drive->base_port STATUS) & 0x40));
+}
+
+void ata28_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
+    wait_ready(drive);
+    outb(drive->base_port DRIVE_HEAD, 0xE0 | drive->flags.slave << 4);
+    wait_ready(drive);
+    outb(drive->base_port ERROR, 0);
+    outb(drive->base_port SECTOR_COUNT, sectors);
+    outb(drive->base_port LBA_LOW, start & 0xff);
+    outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
+    outb(drive->base_port LBA_HIH, (sectors & 0xff0000) >> 8);
+    outb(drive->base_port COMMAND, 0x20);
 }

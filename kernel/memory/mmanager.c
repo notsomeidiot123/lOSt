@@ -26,6 +26,10 @@ void sort_mmap(mmap_entry_t *mmap, int mmap_entries){
     }
 }
 
+int get_ram_size(){
+    return max_address;
+}
+
 void init_memory(mmap_entry_t *mmap, int mmap_entries){
     padding = 8;
     for(int i = 0; i < mmap_entries; i++){

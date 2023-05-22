@@ -53,3 +53,8 @@ char *ltostr(unsigned int number, int base, int padding_count){
 
     return ret;
 }
+void clearmem(void *ptr, int count){
+    for(int i = 0; i < count; i++){
+        ptr = 0;
+    }
+}
