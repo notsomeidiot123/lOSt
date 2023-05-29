@@ -47,7 +47,7 @@ qemu-img resize bin/lOSt.bin 128M
 echo "formatting:"
 
 
-qemu-img resize --shrink drives/data.hd 512M 
+qemu-img resize --shrink drives/data.hd 256M 
 mkfs.fat -F 32 drives/data.hd
 
 cat drives/data.hd >> bin/lOSt.bin
@@ -55,18 +55,11 @@ qemu-img resize --shrink bin/lOSt.bin 1G
 echo "partitioning"
 parted bin/lOSt.bin mkpart primary fat32 0% 25%\
         set 1 boot on
-parted bin/lOSt.bin mkpart primary fat32 25% +512M\
+parted bin/lOSt.bin mkpart primary fat32 25% 100%
 
-echo "finished"
-qemu-system-i386 bin/lOSt.bin\
-    -hdb drives/testhd.hd\
-    -fda drives/testfd.fd\
-    -no-reboot\
-    -no-shutdown\
-    -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
-    -m 32M\
-    -serial mon:stdio
-    # -d int
+echo -e "\nfinished"
 
-# hexdump -C bin/lOSt.bin > dump.hd
+./run
+
+hexdump -C bin/lOSt.bin > dump.hd
 echo -e "\e[31mEnd\e[0m"

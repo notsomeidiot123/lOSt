@@ -1,0 +1,10 @@
+#!/bin/bash
+qemu-system-i386 bin/lOSt.bin\
+    -hdb drives/testhd.hd\
+    -fda drives/testfd.fd\
+    -no-reboot\
+    -no-shutdown\
+    -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
+    -m 32M\
+    -serial mon:stdio
+    # -d int

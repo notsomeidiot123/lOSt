@@ -5,7 +5,6 @@ enum Drive_Types{
     DRIVE_VIRT,
     DRIVE_FLOPPY,
     DRIVE_PATA28,
-    DRIVE_PATA48,
     DRIVE_ATAPI,
     DRIVE_SATA,
     DRIVE_USB,
@@ -64,3 +63,6 @@ typedef struct fs32_s{
 
 extern int register_drive(drive32_t *drive_to_register);
 extern int get_drive_count();
+extern uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int drive);
+extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive);
+extern void *get_drive(int drive);

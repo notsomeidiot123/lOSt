@@ -156,16 +156,22 @@ extern void _fhandler(irq_registers_t *regs, ...){
 
 idt_descriptor idt_desc;
 
-void *_irq_handlers[16] = {0};
+void *_irq_handlers[256] = {0};
 
 int irq_install_handler(void *handler, int irq_number){
-    if(_irq_handlers[irq_number]){
+    if(_irq_handlers[irq_number+ 0x20]){
         return -1;
     }
-    _irq_handlers[irq_number] = handler;
+    _irq_handlers[irq_number + 0x20] = handler;
     return 0;
 }
-
+int int_install_handler(void *handler, int int_num){
+    if(_irq_handlers[int_num]){
+        return -1;
+    }
+    _irq_handlers[int_num] = handler;
+    return 0;
+}
 void irq_remap(){
     outb(0x20, 0x11 );
     outb(0xa0, 0x11);
@@ -216,15 +222,9 @@ void software_int(irq_registers_t* regs){
 
 
 extern void _irq_handler(irq_registers_t *regs){
-    
-    if((unsigned char )regs->int_no == 0x80){
-        software_int(regs);
-        return;
-    }
-
     void (*handler)(irq_registers_t *r);
 
-    handler = (void (*)(irq_registers_t*))_irq_handlers[regs->int_no-0x20];
+    handler = (void (*)(irq_registers_t*))_irq_handlers[regs->int_no];
 
     if(handler){
         handler(regs);
@@ -234,10 +234,12 @@ extern void _irq_handler(irq_registers_t *regs){
         kprintf("f0und: Error! No IRQ handler installed for IRQ %d!\n", regs->int_no - 0x20);
     }
 
-    if(regs->int_no >= 0x28){
+    if(regs->int_no >= 0x28 && regs->int_no < 0x30){
         outb(0xa0, 0x20);
     }
-    outb(0x20, 0x20);
+    if(regs-> int_no < 0x30){
+        outb(0x20, 0x20);
+    }
 }
 pic_mask_master_t master_pic_mask;
 pic_mask_slave_t slave_pic_mask;
@@ -268,6 +270,7 @@ void init_idt(){
     master_pic_mask.byte = 0xff;
     asm("sti");
     load_idt();
+    int_install_handler(softint, 0x80);
     return;
 }
 
@@ -275,5 +278,4 @@ void init_idt(){
 void pic_remask(){
     outb(0x21, master_pic_mask.byte);
     outb(0xa1, slave_pic_mask.byte);
-
 }

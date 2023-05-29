@@ -1,4 +1,5 @@
 //change read/write to be loaded as helper processes with highest priority when we switch back to multitasking
+#include "ata.h"
 #include "storage.h"
 #include "../memory/mmanager.h"
 #include "../cpu/io.h"
@@ -63,15 +64,15 @@ int poll_drive_i(uint16_t port){
     }
     return 0;
 }
-int poll_drive(uint16_t port, uint8_t term, uint8_t request){
-    wait_secs(5);
-    while((port & term) != request){
-        if(wait_secs(0)){
-            return E_TIMEOUT;
-        }
-    }
-    return 0;
-}
+// int poll_drive(uint16_t port, uint8_t term, uint8_t request){
+//     wait_secs(5);
+//     while((port & term) != request){
+//         if(wait_secs(0)){
+//             return E_TIMEOUT;
+//         }
+//     }
+//     return 0;
+// }
 
 //restructre to not require master drive
 int ata_identify(ata_drive32_t *drive){
@@ -95,14 +96,14 @@ int ata_identify(ata_drive32_t *drive){
     uint16_t *buffer = kmalloc(1, 7);
     padding=4;
     for(int i = 0; i < 256; i++){
-        buffer[i] = inb(base_port DATA);
+        buffer[i] = inw(base_port DATA);
     }
-    drive->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
+    // drive->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
     drive->drive_s.flags.removable = 0;
     if(IS_LBA48(buffer)){
         drive->drive_s.size_high = GET_SZ48H(buffer);
         drive->drive_s.size_low = GET_SZ48L(buffer);
-        drive->drive_s.type = DRIVE_PATA48;
+        drive->drive_s.type = DRIVE_PATA28;
     }
     else{
         drive->drive_s.size_low = GET_SZ28(buffer);
@@ -130,14 +131,14 @@ int ata_identify(ata_drive32_t *drive){
         buffer[i] = 0;
     }
     for(int i = 0; i < 256; i++){
-        buffer[i] = inb(base_port DATA);
+        buffer[i] = inw(base_port DATA);
     }
-    slave->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
+    // slave->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
     slave->drive_s.flags.removable = 0;
     if(IS_LBA48(buffer)){
         slave->drive_s.size_high = GET_SZ48H(buffer);
         slave->drive_s.size_low = GET_SZ48L(buffer);
-        slave->drive_s.type = DRIVE_PATA48;
+        slave->drive_s.type = DRIVE_PATA28;
     }
     else{
         slave->drive_s.size_low = GET_SZ28(buffer);
@@ -163,14 +164,107 @@ void wait_ready(ata_drive32_t *drive){
     while(!(inb(drive->base_port STATUS) & 0x40));
 }
 
-void ata28_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
+int poll_drive(ata_drive32_t *drive){
+    uint8_t res = inb(drive->base_port STATUS);
+    wait_secs(5);
+    while(!(res & 0x40 || !(res & 0x8)) || res & 0x80 && !wait_secs(0)){
+        if(res & 0x20 || res & 1){
+            kprintf("ERROR: %x\n", inb(drive->base_port ERROR));
+            return DE_DRIVE_ERR;
+        }
+    }
+    if(wait_secs(0)){
+        // software_reset()
+        kprintf("DRIVE ERROR!\n");
+        return E_TIMEOUT;
+    }
+    return E_NO_ERR;
+}
+
+
+
+uint16_t *ata28_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
     wait_ready(drive);
-    outb(drive->base_port DRIVE_HEAD, 0xE0 | drive->flags.slave << 4);
-    wait_ready(drive);
+    outb(drive->base_port DRIVE_HEAD, 0xE0 | (drive->flags.slave << 4) | ((sectors >> 24) & 0xf));
+    // wait_ready(drive);
     outb(drive->base_port ERROR, 0);
     outb(drive->base_port SECTOR_COUNT, sectors);
     outb(drive->base_port LBA_LOW, start & 0xff);
     outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
-    outb(drive->base_port LBA_HIH, (sectors & 0xff0000) >> 8);
+    outb(drive->base_port LBA_HIH, (sectors & 0xff0000) >> 16);
     outb(drive->base_port COMMAND, 0x20);
+    wait_ready(drive);
+    for(int j = 0; j < sectors; j++){
+        uint8_t stat = poll_drive(drive);
+        if(stat){
+            return (uint16_t*)(uint64_t)stat;
+        }
+        for(int i = 0; i < 256; i++){
+            uint16_t data = inw(drive->base_port DATA);
+            buffer[(j * 256)+ i] = data;
+            // poll_drive(drive);
+        }
+    }
+    return buffer;
+}
+
+uint16_t *ata_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
+    if(drive->flags.lba48){
+        return (uint16_t *) E_NOT_IMPLEMENTED;
+    }
+    else{
+        long end = 0;
+        for(int i = 0; i < sectors / 256; i++){
+            end += (256 * 256);
+            ata28_read(buffer + end, drive, 0, start + (i * 256));
+        }
+        /*MODIFY ALL 512S TO USE THE DRIVE'S SECTOR SIZE*/
+        ata28_read(buffer + end, drive, sectors % 256, start + end / 512);
+    }
+    return buffer;
+}
+
+uint16_t ata28_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
+    wait_ready(drive);
+    outb(drive->base_port DRIVE_HEAD, 0xE0 | (drive->flags.slave << 4) | ((sectors >> 24) & 0xf));
+    // wait_ready(drive);
+    outb(drive->base_port ERROR, 0);
+    outb(drive->base_port SECTOR_COUNT, sectors);
+    outb(drive->base_port LBA_LOW, start & 0xff);
+    outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
+    outb(drive->base_port LBA_HIH, (sectors & 0xff0000) >> 16);
+    outb(drive->base_port COMMAND, 0x30);
+    // wait_ready(drive);
+    for(int j = 0; j < sectors; j++){
+        uint8_t stat = poll_drive(drive);
+        if(stat){
+            return stat;
+        }
+        for(int i = 0; i < 256; i++){
+            outw(drive->base_port DATA, buffer[(j * 256) + i]);
+            outb(0x80, 0); //very short delay
+            // kprintf("%x ", data);
+            // poll_drive(drive);
+        }
+    }
+    wait_ready(drive);
+    //0xE7 = flush cache
+    outb(drive->base_port COMMAND, 0xE7);
+    return E_NO_ERR;
+}
+
+uint16_t ata_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
+    if(drive->flags.lba48){
+        return  E_NOT_IMPLEMENTED;
+    }
+    else{
+        long end = 0;
+        for(int i = 0; i < sectors / 256; i++){
+            end += (256 * 256);
+            ata28_write(buffer + end, drive, 0, start + (i * 256));
+        }
+        /*MODIFY ALL 512S TO USE THE DRIVE'S SECTOR SIZE*/
+        ata28_write(buffer + end, drive, sectors % 256, start + end / 512);
+    }
+    return E_NO_ERR;
 }
