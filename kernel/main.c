@@ -34,26 +34,11 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // init_floppy();
     // kprintf("Floppy Disc Controller Initialization Finished\n");
     call_cpuid();
-    kprintf("[      ] Identifying PATA Drives");
-    int ata_res = ata_identify_all();
-    kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
-    
-    if(ata_res == E_NOT_IMPLEMENTED){
-        kprintf("\t->Driver not implemented!\n");
-    }
-    
+    // kprintf("[      ] Identifying PATA Drives");
+    ata_identify_all();
+    // kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
     short *test = (short *)0xb8000;
     *test = 0x0f41;
-    // uint16_t *buf = read_from_drive(kmalloc(1, 7), 1, 0, 0);
-    uint16_t buf[256] = {};
-    buf[255] = 0xa5a5;
-    kprintf("%d", write_to_drive(buf, 1, 0, 0));
-    for(int i = 0; i < 256; i++){
-        buf[i] = 0;
-    }
-    read_from_drive(buf, 1, 0, 0);
-    kprintf("DONE:%x, %x",buf,  buf[255]);
-    // kprintf("%x", buf[255]);
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

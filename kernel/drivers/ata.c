@@ -144,6 +144,7 @@ int ata_identify(ata_drive32_t *drive){
         slave->drive_s.size_low = GET_SZ28(buffer);
         slave->drive_s.type = DRIVE_PATA28;
     }
+    register_drive((drive32_t *)slave);
     // kprintf("%x", slave->drive_s.size_low);
     return 0;
 }
@@ -166,16 +167,18 @@ void wait_ready(ata_drive32_t *drive){
 
 int poll_drive(ata_drive32_t *drive){
     uint8_t res = inb(drive->base_port STATUS);
-    wait_secs(5);
+    wait_secs(5);//wait 5 seconds, try 6 times, 5*6 = 30 for maximum spin-up time, afterwards, software reset and retry
+    //as default
     while(!(res & 0x40 || !(res & 0x8)) || res & 0x80 && !wait_secs(0)){
         if(res & 0x20 || res & 1){
             kprintf("ERROR: %x\n", inb(drive->base_port ERROR));
             return DE_DRIVE_ERR;
         }
+        res = inb(drive->base_port STATUS);
     }
     if(wait_secs(0)){
         // software_reset()
-        kprintf("DRIVE ERROR!\n");
+        // kprintf("DRIVE ERROR!\n");
         return E_TIMEOUT;
     }
     return E_NO_ERR;
@@ -195,9 +198,20 @@ uint16_t *ata28_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, u
     outb(drive->base_port COMMAND, 0x20);
     wait_ready(drive);
     for(int j = 0; j < sectors; j++){
-        uint8_t stat = poll_drive(drive);
-        if(stat){
-            return (uint16_t*)(uint64_t)stat;
+        int trycount = 0;
+        int trymax = 6;//replace with settings later
+        int res = poll_drive(drive);
+        while(trycount < trymax && res){
+            if(res){
+                res = poll_drive(drive);
+                trycount++;
+            }
+            else{
+                break;
+            }
+        }
+        if(res){
+            return 0;
         }
         for(int i = 0; i < 256; i++){
             uint16_t data = inw(drive->base_port DATA);
@@ -236,9 +250,20 @@ uint16_t ata28_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, u
     outb(drive->base_port COMMAND, 0x30);
     // wait_ready(drive);
     for(int j = 0; j < sectors; j++){
-        uint8_t stat = poll_drive(drive);
-        if(stat){
-            return stat;
+        int trycount = 0;
+        int trymax = 5;//replace with settings later
+        int res = poll_drive(drive);
+        while(trycount < trymax && res){
+            if(res){
+                res = poll_drive(drive);
+                trycount++;
+            }
+            else{
+                break;
+            }
+        }
+        if(res){
+            return res;
         }
         for(int i = 0; i < 256; i++){
             outw(drive->base_port DATA, buffer[(j * 256) + i]);

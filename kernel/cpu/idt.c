@@ -150,7 +150,7 @@ extern void _fhandler(irq_registers_t *regs, ...){
     kprintf("Stack Pointer: %x\n", regs->esp);
     kprintf("Opcode: %x | CS: %x | DS: %x | SS: %x\n", *((unsigned int *)(long)regs->eip), regs->cs, regs->ds, regs->ss == 0x10);
     kprintf("When you are ready, please restart your computer to continue. Any data from before the exception unfortuantely may be lost.\n");
-    kprintf("f0und: End Kernel Panic! Result: Critical Exception. Restart.\nCode: %x\n", regs->int_no | regs->err_code << 16);
+    kprintf("f0und: End Kernel Panic! Result: Critical Exception. Restart.\nCode: %x%x\n", regs->int_no, regs->err_code);
     for(;;);
 }
 
@@ -223,15 +223,19 @@ void software_int(irq_registers_t* regs){
 
 extern void _irq_handler(irq_registers_t *regs){
     void (*handler)(irq_registers_t *r);
-
-    handler = (void (*)(irq_registers_t*))_irq_handlers[regs->int_no];
+    if((unsigned char) regs->int_no == 0x80){
+        software_int(regs);
+        // kprintf("int test");
+        return;
+    }
+    handler = (void (*)(irq_registers_t*))_irq_handlers[(unsigned char)regs->int_no];
 
     if(handler){
         handler(regs);
     }
     else{
         padding = 0;
-        kprintf("f0und: Error! No IRQ handler installed for IRQ %d!\n", regs->int_no - 0x20);
+        kprintf("f0und: Error! No IRQ handler installed for IRQ %d!\n", regs->int_no);
     }
 
     if(regs->int_no >= 0x28 && regs->int_no < 0x30){

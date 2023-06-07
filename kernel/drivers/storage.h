@@ -9,7 +9,6 @@ enum Drive_Types{
     DRIVE_SATA,
     DRIVE_USB,
 };
-
 enum Filesystem_Types{
     FS_UNFORMATTED,
     FS_FAT12,
@@ -48,6 +47,7 @@ typedef struct ata_drive32_s{
 typedef struct fs32_s{
     char mountID;
     uint8_t type;
+    uint8_t drive;
     struct fs_flags{
         uint8_t read_only:1;
         uint8_t system:1;
@@ -61,8 +61,23 @@ typedef struct fs32_s{
     uint32_t size_high;
 }filesystem32_t;
 
+typedef struct file_s{
+    uint8_t permission;
+    uint8_t mode;
+    uint32_t current_cluster;
+    uint32_t start_cluster;
+    uint32_t end_cluster;
+    
+}FILE;
+
 extern int register_drive(drive32_t *drive_to_register);
-extern int get_drive_count();
+extern uint8_t get_drive_count();
 extern uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern void *get_drive(int drive);
+extern int register_fs(filesystem32_t *fs);
+extern FILE *fopen(char *name, int mode);
+extern int fwrite(FILE* f, char *buffer, uint32_t size);
+extern int fwrite_at(FILE* f, char *buffer, uint32_t size);
+extern uint8_t *fread(FILE *f, uint8_t* buffer, uint32_t size);
+extern uint8_t *fread_at(FILE *f, uint8_t* buffer, uint32_t size, uint32_t start);

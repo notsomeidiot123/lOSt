@@ -42,18 +42,22 @@ ls *.o
 cd ../../
 cat bin/bootloader.o bin/base.o >> bin/lOSt.bin
 
-qemu-img resize bin/lOSt.bin 128M
+echo -e "\e[31m STATING KERNEL\e[0m"
+
+stat bin/lOSt.bin
+
+qemu-img resize bin/lOSt.bin 256M
 
 echo "formatting:"
 
 
-qemu-img resize --shrink drives/data.hd 256M 
+qemu-img resize --shrink drives/data.hd 768M 
 mkfs.fat -F 32 drives/data.hd
 
 cat drives/data.hd >> bin/lOSt.bin
 qemu-img resize --shrink bin/lOSt.bin 1G
 echo "partitioning"
-parted bin/lOSt.bin mkpart primary fat32 0% 25%\
+parted bin/lOSt.bin mkpart primary 0% 25%\
         set 1 boot on
 parted bin/lOSt.bin mkpart primary fat32 25% 100%
 
