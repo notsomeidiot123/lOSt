@@ -59,6 +59,18 @@ typedef struct fat32_ebpb_s{
     uint32_t volume_id;
     uint32_t volume_label[8];
 }__attribute__((packed)) fat32_ebpb_t;
+typedef struct fat32_fsinfo_s{
+    //must be 0x41615252
+    uint32_t lead_sig;
+    uint8_t reserved[480];
+    //must be 0x61417272
+    uint32_t sig1;
+    uint32_t last_free_count;
+    uint32_t last_free_cluster;
+    uint8_t reserved1[12];
+    //must be 0xaa550000
+    uint32_t trail_sig;
+}__attribute__((packed)) fat32_fsinfo_t;
 typedef struct fat_bs{
     filesystem32_t fs_desc;
 }fat_fs_bt;
@@ -86,6 +98,16 @@ char *disk_types_ids[] = {
     "sd",
     "us",
 };
+
+/*
+WARNING: This function allocates memory by itself... the caller is *technically*
+responsible for destroying the pointer, however the intended use will most likely
+result in the pointer only being destroyed (and freed) upon shudown/drive removal
+*/
+filesystem32_t *detect_fs(uint16_t *part_start){
+    fat_bpb_t* 
+}
+
 int register_drive(drive32_t *drive_to_register){
     int mountpoint = 0;
     kprintf("[     ] Registering Drive ");
@@ -103,6 +125,7 @@ int register_drive(drive32_t *drive_to_register){
                 if(!(mbr->partiton_table[j].partiton_type == 0 || mbr->partiton_table[j].partiton_type == 0x83 || mbr->partiton_table[j].partiton_type == 0x7f)){
                     uint16_t *part_start = kmalloc(1, 7);
                     read_from_drive(part_start, 1, mbr->partiton_table[j].partition_start, i);
+                    filesystem32_t *fs = detect_fs(part_start);
                 }
             }
             return 0;
