@@ -192,9 +192,9 @@ uint16_t *ata28_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, u
     // wait_ready(drive);
     outb(drive->base_port ERROR, 0);
     outb(drive->base_port SECTOR_COUNT, sectors);
-    outb(drive->base_port LBA_LOW, start & 0xff);
-    outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
-    outb(drive->base_port LBA_HIH, (sectors & 0xff0000) >> 16);
+    outb(drive->base_port LBA_LOW, start & 0x0000ff);
+    outb(drive->base_port LBA_MID, (start & 0x00ff00) >> 8);
+    outb(drive->base_port LBA_HIH, (start & 0xff0000) >> 16);
     outb(drive->base_port COMMAND, 0x20);
     wait_ready(drive);
     for(int j = 0; j < sectors; j++){
@@ -246,7 +246,7 @@ uint16_t ata28_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, u
     outb(drive->base_port SECTOR_COUNT, sectors);
     outb(drive->base_port LBA_LOW, start & 0xff);
     outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
-    outb(drive->base_port LBA_HIH, (sectors & 0xff0000) >> 16);
+    outb(drive->base_port LBA_HIH, (start & 0xff0000) >> 16);
     outb(drive->base_port COMMAND, 0x30);
     // wait_ready(drive);
     for(int j = 0; j < sectors; j++){

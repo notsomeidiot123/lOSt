@@ -24,7 +24,7 @@ typedef struct fat_bpb_s{
     uint16_t num_reserved_sectors;
     uint8_t fat_c;
     uint16_t root_dir_entries;
-    uint16_t sectors_in_volume_small;
+    uint16_t sectors_in_vol;
     uint8_t media_desc_type;
     uint16_t sectors_per_fat;
     uint16_t sectors_per_track;
@@ -87,6 +87,7 @@ typedef struct mbr_s{
         uint32_t partition_start;
         uint32_t size_sectors;
     }__attribute__((packed))partiton_table[4];
+    uint16_t boot_magic;
 }__attribute__((packed)) mbr_t;
 
 char *disk_types_ids[] = {
@@ -105,7 +106,13 @@ responsible for destroying the pointer, however the intended use will most likel
 result in the pointer only being destroyed (and freed) upon shudown/drive removal
 */
 filesystem32_t *detect_fs(uint16_t *part_start){
-    fat_bpb_t* 
+    fat_bpb_t* fat_bpb = (fat_bpb_t *)part_start;
+    uint32_t fat_size = (fat_bpb->sectors_per_fat == 0) ? ((fat32_ebpb_t *)fat_bpb)->sectors_per_fat : fat_bpb->sectors_per_fat;
+    uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector;
+    uint32_t data_sectors = (fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol) - (fat_bpb->num_reserved_sectors + fat_bpb->fat_c * fat_size + root_dir_sectors);
+    uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
+    kprintf("\t-Total clusters: %x\n\t-Cluster Size in Bytes: %d\n", total_clusters, fat_bpb->bytes_per_sector * fat_bpb->sectors_per_cluster);
+    return 0;
 }
 
 int register_drive(drive32_t *drive_to_register){
