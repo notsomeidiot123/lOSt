@@ -2,6 +2,7 @@
 #include "../cpu/ecodes.h"
 #include "ata.h"
 #include "floppy.h"
+#include "../memory/string.h"
 #include <stdint.h>
 #include "serial.h"
 #include "../memory/mmanager.h"
@@ -14,6 +15,14 @@ char *drive_type_strs[8] = {
     "ATAPI ",
     "SATA  ",
     "USB   ",
+};
+
+char *fs_type_strs[] = {
+    "NONE",
+    "FS_FAT12",
+    "FS_FAT16",
+    "FS_FAT32",
+    "FS_EXT2",
 };
 
 typedef struct fat_bpb_s{
@@ -107,11 +116,16 @@ result in the pointer only being destroyed (and freed) upon shudown/drive remova
 */
 filesystem32_t *detect_fs(uint16_t *part_start){
     fat_bpb_t* fat_bpb = (fat_bpb_t *)part_start;
+    if(fat_bpb->bytes_per_sector == 0 || fat_bpb->sectors_per_cluster == 0){
+        return 0;
+    }
     uint32_t fat_size = (fat_bpb->sectors_per_fat == 0) ? ((fat32_ebpb_t *)fat_bpb)->sectors_per_fat : fat_bpb->sectors_per_fat;
-    uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector;
+    uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector == 0;
     uint32_t data_sectors = (fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol) - (fat_bpb->num_reserved_sectors + fat_bpb->fat_c * fat_size + root_dir_sectors);
     uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
-    kprintf("\t-Total clusters: %x\n\t-Cluster Size in Bytes: %d\n", total_clusters, fat_bpb->bytes_per_sector * fat_bpb->sectors_per_cluster);
+    filesystem32_t *fs = kmalloc(1, 6);
+    //if the first two clusters are all 0's, it's EXT, else, it's NTFS or FAT12/16/32 (screw NTFS)
+    fs->type = total_clusters <= 0xfff ? FS_FAT12: total_clusters <= 0xffff ? FS_FAT16 : FS_FAT32;
     return 0;
 }
 
