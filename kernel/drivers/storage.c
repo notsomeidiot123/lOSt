@@ -7,6 +7,8 @@
 #include "serial.h"
 #include "../memory/mmanager.h"
 
+#define EXT_SIG 0xef53
+
 char *drive_type_strs[8] = {
     "NULL  ",
     "VIRTL ",
@@ -19,12 +21,13 @@ char *drive_type_strs[8] = {
 
 char *fs_type_strs[] = {
     "NONE",
-    "FS_FAT12",
-    "FS_FAT16",
-    "FS_FAT32",
-    "FS_EXT2",
+    "FAT12",
+    "FAT16",
+    "FAT32",
+    "EXT2",
 };
-
+//EXT3 will not be supported. EXT3 will probably never be supported
+//Why am i dedicating so much effort into something that will never be used lmao
 typedef struct fat_bpb_s{
     uint8_t jshort[3];
     uint8_t oem_id[8];
@@ -51,6 +54,7 @@ typedef struct fat16_ebpb_s{
     uint8_t volume_label[11];
     uint8_t system_id[8];
 }__attribute__((packed))fat16_ebpb_t;
+
 typedef struct fat32_ebpb_s{
     fat_bpb_t fat_bpb;
     uint32_t sectors_per_fat;
@@ -68,6 +72,7 @@ typedef struct fat32_ebpb_s{
     uint32_t volume_id;
     uint32_t volume_label[8];
 }__attribute__((packed)) fat32_ebpb_t;
+
 typedef struct fat32_fsinfo_s{
     //must be 0x41615252
     uint32_t lead_sig;
@@ -114,18 +119,71 @@ WARNING: This function allocates memory by itself... the caller is *technically*
 responsible for destroying the pointer, however the intended use will most likely
 result in the pointer only being destroyed (and freed) upon shudown/drive removal
 */
-filesystem32_t *detect_fs(uint16_t *part_start){
-    fat_bpb_t* fat_bpb = (fat_bpb_t *)part_start;
+fs_fat16_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer){
+    int id = 0;
+    for(int i = 0; i < 26; i++){
+        if(filesystems[i] == 0){
+            id = i;
+        }
+    }
+    fat_bpb_t* fat_bpb = (fat_bpb_t *)buffer;
     if(fat_bpb->bytes_per_sector == 0 || fat_bpb->sectors_per_cluster == 0){
         return 0;
     }
-    uint32_t fat_size = (fat_bpb->sectors_per_fat == 0) ? ((fat32_ebpb_t *)fat_bpb)->sectors_per_fat : fat_bpb->sectors_per_fat;
+    uint32_t fat_size = fat_bpb->sectors_per_fat;
     uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector == 0;
     uint32_t data_sectors = (fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol) - (fat_bpb->num_reserved_sectors + fat_bpb->fat_c * fat_size + root_dir_sectors);
     uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
-    filesystem32_t *fs = kmalloc(1, 6);
-    //if the first two clusters are all 0's, it's EXT, else, it's NTFS or FAT12/16/32 (screw NTFS)
-    fs->type = total_clusters <= 0xfff ? FS_FAT12: total_clusters <= 0xffff ? FS_FAT16 : FS_FAT32;
+    fs_fat16_t *fat = (fs_fat16_t*)fs;
+    fat->fs_base.drive = drive;
+    fat->fs_base.mountID = id;
+    fat->fs_base.flags = (struct fs_flags){0};
+    fat->fs_base.size_low = fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol;
+    fat->first_data_sector = fat_bpb->num_reserved_sectors + (fat_bpb->fat_c * fat_bpb->sectors_per_fat);
+    fat->sectors_per_cluster = fat_bpb->sectors_per_cluster;
+    fat->sectors_per_fat = fat_bpb->sectors_per_fat;
+    fat->fat_offset_primary = fat_bpb->num_reserved_sectors;
+    fat->fat_offset_secondary = fat_bpb->num_reserved_sectors + fat_bpb->sectors_per_fat;
+    fat->total_clusters = total_clusters;
+    fat->free_clusters = total_clusters;
+    
+}
+
+filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector){
+    
+    char ext = part_start[512 + (56/2)] == EXT_SIG;
+    if(ext){
+        //this is a whole other beast...
+    }
+    else{
+        fat_bpb_t* fat_bpb = (fat_bpb_t *)part_start;
+        if(fat_bpb->bytes_per_sector == 0 || fat_bpb->sectors_per_cluster == 0){
+            return 0;
+        }
+        uint32_t fat_size = (fat_bpb->sectors_per_fat == 0) ? ((fat32_ebpb_t *)fat_bpb)->sectors_per_fat : fat_bpb->sectors_per_fat;
+        uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector == 0;
+        uint32_t data_sectors = (fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol) - (fat_bpb->num_reserved_sectors + fat_bpb->fat_c * fat_size + root_dir_sectors);
+        uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
+        filesystem32_t *fs = kmalloc(1, 6);
+        fs->start_low = start_sector;
+        //if the first two clusters are all 0's, it's EXT, else, it's NTFS or FAT12/16/32 (screw NTFS)
+        fs->type = total_clusters <= 0xfff ? FS_FAT12: total_clusters <= 0xffff ? FS_FAT16 : FS_FAT32;
+        switch(fs->type){
+            case FS_FAT12:
+                //fall through to fat16 cause they are pretty much the same
+            case FS_FAT16:
+                //fat16 sepcific things... i guess;
+                
+                break;
+            case FS_FAT32:
+                //fat32 specific things, this time, do something ***slightly*** different
+            break;
+            default:
+                //how did we get here?
+                break;
+        }
+    }
+    
     return 0;
 }
 
@@ -145,8 +203,8 @@ int register_drive(drive32_t *drive_to_register){
                 kprintf("%s%c%d: LBA Address: %x, Size: %x, Type: %x, %s\n", disk_types_ids[drive_to_register->type], 'a' + i, j, mbr->partiton_table[j].partition_start, mbr->partiton_table[j].size_sectors, mbr->partiton_table[j].partiton_type, mbr->partiton_table[j].drive_attributes & 0x80 ? "BOOTABLE" : "NOT BOOTABLE");
                 if(!(mbr->partiton_table[j].partiton_type == 0 || mbr->partiton_table[j].partiton_type == 0x83 || mbr->partiton_table[j].partiton_type == 0x7f)){
                     uint16_t *part_start = kmalloc(1, 7);
-                    read_from_drive(part_start, 1, mbr->partiton_table[j].partition_start, i);
-                    filesystem32_t *fs = detect_fs(part_start);
+                    read_from_drive(part_start, 8, mbr->partiton_table[j].partition_start, i);
+                    filesystem32_t *fs = detect_fs(part_start, i, mbr->partiton_table[j].partition_start);
                 }
             }
             return 0;
