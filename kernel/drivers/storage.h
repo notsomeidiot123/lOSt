@@ -62,18 +62,6 @@ typedef struct fs32_s{
     uint32_t size_high;
 }filesystem32_t;
 
-typedef struct fs_fat16_s{
-    filesystem32_t fs_base;
-    //Offset from start of partition, not start of drive
-    uint32_t fat_offset_primary;
-    //Offset from start of partition, not start of drive
-    uint32_t fat_offset_secondary;
-    uint16_t sectors_per_fat;
-    uint32_t total_clusters;
-    uint32_t sectors_per_cluster;
-    uint32_t first_data_sector;
-    uint32_t free_clusters;
-}fs_fat16_t;
 
 typedef struct file_s{
     uint8_t permission;

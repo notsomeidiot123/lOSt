@@ -52,7 +52,7 @@ echo "formatting:"
 
 
 qemu-img resize --shrink drives/data.hd 768M 
-mkfs.fat -F 32 -S 512 -s 8 drives/data.hd 
+mkfs.fat -F 16 -S 512 -s 32 drives/data.hd 
 # mkfs.fat drives/testhd.hd
 
 cat drives/data.hd >> bin/lOSt.bin
