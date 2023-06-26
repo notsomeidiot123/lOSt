@@ -89,6 +89,7 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
         uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
         filesystem32_t *fs = kmalloc(1, 6);
         fs->start_low = start_sector;
+        fs->mountID = id;
         //if the first two clusters are all 0's, it's EXT, else, it's NTFS or FAT12/16/32 (screw NTFS)
         fs->type = total_clusters <= 0xfff ? FS_FAT12: total_clusters <= 0xffff ? FS_FAT16 : FS_FAT32;
         switch(fs->type){
