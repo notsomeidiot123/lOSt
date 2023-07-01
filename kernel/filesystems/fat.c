@@ -10,7 +10,12 @@ void cache_fat(fs_fat_t *fat, uint32_t start){
     fat->cached_clusters_start = start;
     read_from_drive(buffer, fat->cached_clusters_size, start + fat->fat_offset_primary, fat->fs_base.drive);
 }
-
+void read_root_dir(fs_fat_t *fat){
+    fat->root_dir_entries = kmalloc((fat->root_dir_size_sectors/8 )+ 1, 6);
+    //change to allow for different sector sizes, don't wanna be wasting precious memory, do we?
+    read_from_drive((uint16_t *)fat->root_dir_entries, fat->root_dir_size_sectors, fat->root_dir_sector, fat->fs_base.drive);
+    
+}
 
 fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer){
 
@@ -36,5 +41,9 @@ fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer){
     // fat->free_clusters = fat16_find_free(fat);
     kprintf("FAT12/6 on drive %c: Total clusters: %d, Cluster Size (bytes): %d\nFAT Size (sectors): %d\n[      ] Caching FAT (128kb)", 'A' + drive, fat->total_clusters, fat->sectors_per_cluster * 512, fat->sectors_per_fat);
     cache_fat(fat, 0);
+    fat->root_dir_size_sectors = root_dir_sectors;
+    fat->root_dir_sector = fat_bpb->num_reserved_sectors + (fat_bpb->fat_c * fat_bpb->sectors_per_fat);
+    read_root_dir(fat);
     return fat;
 }
+
