@@ -190,19 +190,9 @@ int register_fs(filesystem32_t *filesystem){
     return -1;
 }
 
-int fwrite_at(FILE* f, char *buffer, uint32_t size){
-    return 0;
-}
+//WARNING: FOPEN ALLOCATES MEMORY
+FILE *fopen(char *name, int mode);
 
-FILE *fopen(char *name, int mode){
-    return 0;
-}
-int fwrite(FILE* f, char *buffer, uint32_t size){
-    return 0;
-}
-uint8_t *fread_at(FILE *f, uint8_t* buffer, uint32_t size, uint32_t start){
-    return 0;
-}
-uint8_t *fread(FILE *f, uint8_t* buffer, uint32_t size){
-    return 0;
-}
+int fwrite(FILE* file, uint8_t *buffer, uint32_t size);
+
+void fread(FILE* f, uint8_t* buffer, uint32_t size);

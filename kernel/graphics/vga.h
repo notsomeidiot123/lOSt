@@ -10,4 +10,7 @@ extern void set_color(int color);
 extern int get_color();
 extern void clear_screen();
 
+extern void textmode_print_load();
+extern void disp_str(int x, int y, char *str);
+
 extern int padding;

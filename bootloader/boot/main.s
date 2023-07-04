@@ -44,6 +44,7 @@ code_desc: db 0xff, 0xff, 0, 0, 0, 10011010b, 0, 0
 data_desc: db 0xff, 0xff, 0, 0, 0, 010010010b, 11001111b, 0
 tmp_gdt_end:
 unreal:
+  
     xor ax, ax
     mov ds, ax
     mov ss, ax
@@ -211,6 +212,9 @@ jmp $
 part2_start:
     mov bx,  strtab.start
     call Strs.printr
+    mov ah,   0
+    mov al,   0x03
+    int 0x10
     .mmap:
         call get_mmap
     ;read kernel
@@ -232,6 +236,8 @@ part2_start:
     mov dl, [boot_disk]
     int 0x13
 
+    ;set video mode to 80x25
+    ; 
     setup_gdt:
     xor eax, eax
     ; mov al, byte [es:bx]

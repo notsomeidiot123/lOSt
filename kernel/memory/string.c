@@ -58,3 +58,13 @@ void clearmem(void *ptr, int count){
         ptr = 0;
     }
 }
+void kstrcat(char *dest, char* first, char *second){
+    int pos = 0;
+    while(first[pos]){
+        dest[pos] = first[pos];
+        pos++;
+    }
+    while(*second){
+        dest[pos++] = *(second++);
+    }
+}

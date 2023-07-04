@@ -66,10 +66,8 @@ typedef struct fs32_s{
 typedef struct file_s{
     uint8_t permission;
     uint8_t mode;
-    uint32_t current_cluster;
-    uint32_t start_cluster;
-    uint32_t end_cluster;
-    
+    uint8_t fs_type;
+    uint32_t position;
 }FILE;
 
 extern int register_drive(drive32_t *drive_to_register);
@@ -78,8 +76,10 @@ extern uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int d
 extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern void *get_drive(int drive);
 extern int register_fs(filesystem32_t *fs);
+
+//WARNING: FOPEN ALLOCATES MEMORY
 extern FILE *fopen(char *name, int mode);
-extern int fwrite(FILE* f, char *buffer, uint32_t size);
-extern int fwrite_at(FILE* f, char *buffer, uint32_t size);
-extern uint8_t *fread(FILE *f, uint8_t* buffer, uint32_t size);
-extern uint8_t *fread_at(FILE *f, uint8_t* buffer, uint32_t size, uint32_t start);
+extern int fwrite(FILE* file, uint8_t *buffer, uint32_t size);
+// extern int fwrite_at(char *filename, char *buffer, uint32_t size);
+extern void fread(FILE* f, uint8_t* buffer, uint32_t size);
+// extern uint8_t *fread_at(FILE *f, uint8_t* buffer, uint32_t size, uint32_t start);

@@ -59,6 +59,40 @@ typedef struct fat32_fsinfo_s{
     uint32_t trail_sig;
 }__attribute__((packed)) fat32_fsinfo_t;
 
+#define is_lfn(file) file->attributes.read_only && file->attributes.hidden && file->attributes.system && file->attributes.vol_id
+
+typedef struct fat_file_s{
+    char name[8];
+    char ext[3];
+    struct fat_file_attributes_s{
+        uint8_t read_only:1;
+        uint8_t hidden:1;
+        uint8_t system:1;
+        uint8_t vol_id:1;
+        uint8_t is_dir:1;
+        uint8_t archive:1;
+    }attributes;
+    uint8_t reserved;
+    uint8_t creation_time_tenths;
+    struct fat_time_s{
+        uint16_t hour:5;
+        uint16_t minutes:6;
+        uint16_t seconds:5;
+    }creation_time;
+    struct fat_date_s{
+        uint16_t year:7;
+        uint16_t month:4;
+        uint16_t day:5;
+    }creation_date;
+    struct fat_date_s last_accessed;
+    uint16_t first_cluster_high;
+    struct fat_time_s last_mod_time;
+    struct fat_date_s last_mod_date;
+    uint16_t first_cluster;
+    uint32_t filesize_bytes;
+    
+}fat_file_t;
+
 typedef struct fs_fat_s{
     filesystem32_t fs_base;
     //Offset from start of partition, not start of drive
@@ -78,45 +112,18 @@ typedef struct fs_fat_s{
     uint32_t fat_cache_size;
     
     uint32_t root_dir_sector;
-    FILE **root_dir_entries;
+    fat_file_t *root_dir_entries;
     uint32_t root_dir_size_sectors;
     uint32_t root_dir_size_entries;
 }fs_fat_t;
 
-#define is_lfn(file) file->attributes.read_only && file->attributes.hidden && file->attributes.system && file->attributes.vol_id
+typedef struct fat_file_type_s {
+    FILE file_base;
+    uint32_t start_cluster;
+    uint32_t current_cluster;
+}FAT_FILE;
 
-typedef struct fat_file_s{
-    char name[8];
-    char ext[3];
-    struct fat_file_attributes_s{
-        uint8_t read_only:1;
-        uint8_t hidden:1;
-        uint8_t system:1;
-        uint8_t vol_id:1;
-        uint8_t is_dir:1;
-        uint8_t archive:1;
-    }attributes;
-    uint8_t reserved;
-    uint8_t creationg_time_tenths;
-    struct fat_time_s{
-        uint16_t hour:5;
-        uint16_t minutes:6;
-        uint16_t seconds:5;
-    }creation_time;
-    struct fat_date_s{
-        uint16_t year:7;
-        uint16_t month:4;
-        uint16_t day:5;
-    }creation_date;
-    struct fat_date_s last_accessed;
-    uint16_t first_cluster_high;
-    struct fat_time_s last_mod_time;
-    struct fat_date_s last_mod_date;
-    uint16_t first_cluster;
-    uint32_t filesize_bytes;
-    
-}fat_file_t;
-FILE *fat_open_file(char *filename, char mode);
-char *fat_read(FILE *file, int size);
+FAT_FILE *fat_open_file(char *filename, fs_fat_t* fat);
+void fat_read(FILE *file, int size, char *buffer);
 int fat_write(FILE *file, int size, char *buffer);
 fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer);

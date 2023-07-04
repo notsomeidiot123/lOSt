@@ -12,7 +12,10 @@
 #include "drivers/ata.h"
 #include "cpu/ksec.h"
 
+char catstr[60];
+
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
+    textmode_print_load();
     set_color(0x7);
     char serial_res = serial_init();
     kprintf("Finished\n");
@@ -30,6 +33,9 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     pic_remask();
     kprintf("Registering MMAP:\n");
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
+    kstrcat(catstr, "RAM: ", ltostr(get_ram_size()/1024/1024, 10, 0));
+    kstrcat(catstr, catstr, "Mb");
+    disp_str(40, 12, catstr);
     // kprintf("Starting FDC:\n");
     // init_floppy();
     // kprintf("Floppy Disc Controller Initialization Finished\n");
@@ -37,8 +43,9 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // kprintf("[      ] Identifying PATA Drives");
     ata_identify_all();
     // kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
-    short *test = (short *)0xb8000;
-    *test = 0x0f41;
+    
+    disp_str(40, 13, "Finished in Time:");
+    disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 
