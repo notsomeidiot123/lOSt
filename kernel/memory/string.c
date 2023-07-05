@@ -26,8 +26,17 @@ int kstrcmp(char *s, char *c){
     return 0;
 }
 
-void kmemcpy(short *s, short *d, int bytes){
-    for(int i = 0; i < bytes/2; i++){
+int kmemcmp(unsigned char *source, unsigned char *dest, int num){
+    for(int i = 0; i < num; i++){
+        if(source[i] != dest[i]){
+            return source[i] - dest[i];
+        }
+    }
+    return 0;
+}
+
+void kmemcpy(char *s, char *d, int bytes){
+    for(int i = 0; i < bytes; i++){
         d[i] = s[i];
     }
 }

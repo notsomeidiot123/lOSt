@@ -123,6 +123,8 @@ typedef struct fat_file_type_s {
     uint32_t current_cluster;
 }FAT_FILE;
 
+typedef fat_file_t dirent_t;
+
 FAT_FILE *fat_open_file(char *filename, fs_fat_t* fat);
 void fat_read(FILE *file, int size, char *buffer);
 int fat_write(FILE *file, int size, char *buffer);
