@@ -72,6 +72,7 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
     for(int i = 0; i < 26; i++){
         if(filesystems[i] == 0){
             id = i;
+            break;
         }
     }
     char ext = part_start[512 + (56/2)] == EXT_SIG;
@@ -106,6 +107,7 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
                 //how did we get here?
                 break;
         }
+        fs->type = FS_FAT;
         filesystems[id] = fs;
     }
     
@@ -191,7 +193,18 @@ int register_fs(filesystem32_t *filesystem){
 }
 
 //WARNING: FOPEN ALLOCATES MEMORY
-FILE *fopen(char *name, int mode);
+FILE *fopen(char *name, int mode){
+    switch(filesystems[name[0]- 'A']->type){
+        case FS_FAT16:
+        case FS_FAT32:
+        case FS_FAT:
+            fat_open_file(name, (fs_fat_t*)filesystems[name[0]-'A'], mode);
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
 
 int fwrite(FILE* file, uint8_t *buffer, uint32_t size);
 

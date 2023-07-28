@@ -230,7 +230,7 @@ part2_start:
     mov word [DAP.segemnt], 0x1000
     mov word [DAP.offset], 0
     add dword [DAP.start], 7
-    mov byte [DAP.sectors], 0x60
+    mov byte [DAP.sectors], 0x80
     mov ah, 0x42
     mov si, DAP
     mov dl, [boot_disk]

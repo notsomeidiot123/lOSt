@@ -11,9 +11,10 @@ enum Drive_Types{
 };
 enum Filesystem_Types{
     FS_UNFORMATTED,
-    FS_FAT12,
-    FS_FAT16,
-    FS_FAT32,
+    FS_FAT = 1,
+    FS_FAT12 = 1,
+    FS_FAT16 = 3,
+    FS_FAT32 = 5,
     FS_EXT2  
 };
 
@@ -61,7 +62,10 @@ typedef struct fs32_s{
     uint32_t size_low;
     uint32_t size_high;
 }filesystem32_t;
-
+enum FILE_MODES{
+    MODE_WRITE = 1,
+    MODE_READ = 2
+};
 
 typedef struct file_s{
     uint8_t permission;

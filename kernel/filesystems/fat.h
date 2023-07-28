@@ -107,7 +107,7 @@ typedef struct fs_fat_s{
 
     uint32_t cached_clusters_start;
     uint32_t cached_clusters_size;
-    uint16_t *fat_cache;
+    uint32_t *fat_cache;
     uint32_t last_free_cluster;
     uint32_t fat_cache_size;
     
@@ -116,16 +116,17 @@ typedef struct fs_fat_s{
     uint32_t root_dir_size_sectors;
     uint32_t root_dir_size_entries;
 }fs_fat_t;
-
+typedef fat_file_t dirent_t;
 typedef struct fat_file_type_s {
     FILE file_base;
     uint32_t start_cluster;
     uint32_t current_cluster;
+    dirent_t dirent;
 }FAT_FILE;
 
-typedef fat_file_t dirent_t;
 
-FAT_FILE *fat_open_file(char *filename, fs_fat_t* fat);
+
+FAT_FILE *fat_open_file(char *filename, fs_fat_t* fat, uint8_t mode);
 void fat_read(FILE *file, int size, char *buffer);
 int fat_write(FILE *file, int size, char *buffer);
 fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer);

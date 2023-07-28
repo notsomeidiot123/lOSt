@@ -1,4 +1,5 @@
 #include "drivers/storage.h"
+#include "filesystems/fat.h"
 #include "graphics/vga.h"
 #include "cpu/idt.h"
 #include "cpu/cpu.h"
@@ -43,9 +44,11 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // kprintf("[      ] Identifying PATA Drives");
     ata_identify_all();
     // kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
-    
+    fopen("A:/test.txt", MODE_WRITE);
+    kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
+    
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 
