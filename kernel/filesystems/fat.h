@@ -111,10 +111,10 @@ typedef struct fs_fat_s{
     uint32_t last_free_cluster;
     uint32_t fat_cache_size;
     
-    uint32_t root_dir_sector;
     fat_file_t *root_dir_entries;
-    uint32_t root_dir_size_sectors;
     uint32_t root_dir_size_entries;
+
+    fat_file_t root_dirent;
 }fs_fat_t;
 typedef fat_file_t dirent_t;
 typedef struct fat_file_type_s {

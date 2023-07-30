@@ -5,7 +5,8 @@
 #include "../drivers/serial.h"
 
 void cache_fat(fs_fat_t *fat, uint32_t start){
-
+    //woo that took me a while to re-read
+    //remember to replace 128 with bytes_per_sector/4 (four bytes per FAT entry)
     uint16_t *buffer;
     buffer = fat->fat_cache == 0 ? kmalloc(fat->fat_cache_size/8, 6) : fat->fat_cache;
     fat->cached_clusters_start = start;
@@ -14,11 +15,7 @@ void cache_fat(fs_fat_t *fat, uint32_t start){
 void write_cache(fs_fat_t* fat){
     write_to_drive((uint16_t *)fat->fat_cache, fat->fat_cache_size, fat->fat_offset_primary + fat->cached_clusters_start, fat->fs_base.drive);
 }
-void read_root_dir16(fs_fat_t *fat){
-    fat->root_dir_entries = kmalloc((fat->root_dir_size_sectors/8 )+ 1, 6);
-    //change to allow for different sector sizes, don't wanna be wasting precious memory, do we?
-    read_from_drive((uint16_t *)fat->root_dir_entries, fat->root_dir_size_sectors, fat->root_dir_sector, fat->fs_base.drive);
-}
+
 
 //Searches Dir for file matching filename file
 //  If found, returns the ptr to the dirent for file
@@ -50,6 +47,7 @@ dirent_t *search_dir(char *file, dirent_t *dir, uint32_t dirsize){
 }
 
 uint32_t get_next_cluster(uint32_t cluster, fs_fat_t *fat){
+    //i feel like this is broken... we'll see later
     if(cluster < fat->cached_clusters_start/128 || cluster > fat->cached_clusters_start/128 + fat->cached_clusters_size){
         cache_fat(fat, cluster);
     }
@@ -65,6 +63,7 @@ void set_next_cluster(uint32_t cluster, uint32_t next, fs_fat_t *fat){
     }
     fat->fat_cache[cluster - fat->cached_clusters_start/128] = next;
 }
+
 //TODO: update ISR handler to not crash the entire fking computer
 //when someone wants more ram than there is available :/
 //also for every damn 512 there is in this file there's another thing i need to 
@@ -75,7 +74,7 @@ uint8_t *fat_read_file(uint8_t *buffer, dirent_t *dirent, uint32_t size, fs_fat_
     for(int i = 0; i < clusters; i++){
         read_from_drive((uint16_t*)buffer + i * fat->sectors_per_cluster * 512, fat->sectors_per_cluster, fat->first_data_sector + cluster , fat->fs_base.drive);
         cluster = get_next_cluster(cluster, fat);
-        if(cluster == -1){
+        if(cluster >= 0x0FFFFFF8){
             break;
         }
     }
@@ -89,8 +88,8 @@ void fat_write_file(uint8_t *buffer, dirent_t *dirent, uint32_t size, fs_fat_t* 
         write_to_drive((uint16_t*)buffer + i * fat->sectors_per_cluster * 512, fat->sectors_per_cluster, fat->first_data_sector + cluster , fat->fs_base.drive);
         last_cluster = cluster;
         cluster = get_next_cluster(cluster, fat);
-        if(cluster == -1){
-            //what the hell is the special 'cluster free' 0. it's 0
+        if(cluster >= 0x0FFFFFF8){
+            //what the hell is the special 'cluster free'? 0. it's 0
             for(int i = 2; i < fat->total_clusters; i++){
                 //hacky way of force-caching clusters when i need them to be, and finding out the next cluster
                 int res = get_next_cluster(i, fat);
@@ -101,10 +100,36 @@ void fat_write_file(uint8_t *buffer, dirent_t *dirent, uint32_t size, fs_fat_t* 
         }
     }
 }
+//more complicated than it needs to be but i like having as much memory as possible...
+//guess im optimizing for memory here and not speed
+//plus, what if someone wants to have 2^28 files in their root folder? who am i to stop them?
+int read_root_dir16(fs_fat_t *fat){
+    dirent_t dir = {};
+    dir.first_cluster = 2;
+    dir.first_cluster_high = 0;
+    uint32_t cluster_count = 0;
+    int cluster = 2;
+    while(cluster < 0x0ffffff8 && cluster){
+        cluster = get_next_cluster(cluster, fat);
+        if(!cluster){
+            return -1;
+        }
+        cluster_count++;
+    }
+    fat->root_dir_entries = kmalloc(cluster_count, 6);
+    fat_read_file((void*)fat->root_dir_entries, &dir, -1, fat);
+    //find length of buffer in entries, and locate the last entry
+    int i = 0;
+    while(fat->root_dir_entries[i++].name[0]){
+        fat->root_dir_size_entries++;
+        //could optimize this by creating a register variable
+    }
+    return 0;
+}
 // void fat16_write_root(fs_fat_t *fat){
     // fat->root_dir_entries[fat->root_dir_size_entries]
 // }
-FAT_FILE *fat_create_file(char *filename, fs_fat_t *fat){
+FAT_FILE *fat_create_file(char *filename, fs_fat_t *fat, dirent_t *directory){
     kprintf("Creating File! File:%s\n", filename);
     int last_dir_pos = 0;
     int i = 0;
@@ -119,22 +144,30 @@ FAT_FILE *fat_create_file(char *filename, fs_fat_t *fat){
     dirent_t *dirent = 0;
     dirent_t *buffer = 0;
     FAT_FILE *dir = 0;
-    if(filename[0]){
+    if(directory){
         dir = fat_open_file(filename, fat, MODE_READ);
+        if(!dir){
+            return (void *) -1;
+        }
         buffer = (dirent_t *)kmalloc((dir->dirent.filesize_bytes/4096) + 2, 6);
 
         fat_read_file((uint8_t *)buffer, &dir->dirent, dir->dirent.filesize_bytes, fat);
         int index = dir->dirent.filesize_bytes/sizeof(dirent_t);
         dirent = &(buffer[index]);
     }
-    else if(fat->fs_base.type == FS_FAT32){
-        //open file and read clusters
-        kprintf("fat32");
-    }
     else{
-        //create a new file and shove it into the root folder ig
-        kprintf("else\n");
+        buffer = (dirent_t *)kmalloc((dir->dirent.filesize_bytes/4096) + 2, 6);
     }
+    // else{
+    //     //create a new file and shove it into the root folder ig
+    //     if((fat->root_dir_size_entries + 1) > ((fat->root_dir_size_sectors * 512)/32))
+    //     {
+    //         kprintf("\02Error: Fat12/6 root directory out of space!\n");
+    //         return (FAT_FILE *)-1;
+    //     }
+    //     // kprintf("else\n");
+    //     // fat->root_dir_entries[fat->root_dir_size_entries++] = *dirent;
+    // }
     kmemcpy((short *)newfilename, (short *)dirent->name, 8);
     kmemcpy((short *)newfilename + 8, (short *)dirent->ext, 3);
     dirent->filesize_bytes = 0;
@@ -204,12 +237,11 @@ FAT_FILE *fat_open_file (char *filename, fs_fat_t *fat, uint8_t mode){
         filename++;
         dir = tmpdir;
     }
-    kprintf("filename: %s", filename);
     dirent = search_dir(filename, (dirent_t*)dir, dirsize);
     if(!dirent){
         kfree(dir);
         if(mode & MODE_WRITE){
-            return fat_create_file(filename, fat);
+            return fat_create_file(filename, fat, 0);
         }
         
         return 0;
@@ -244,7 +276,8 @@ fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer){
         return 0;
     }
     uint32_t fat_size = fat_bpb->sectors_per_fat;
-    uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector == 0;
+    uint32_t root_dir_sectors = ((fat_bpb->root_dir_entries * 32 ) + (fat_bpb->bytes_per_sector - 1)) / fat_bpb->bytes_per_sector;
+    kprintf("Root dir size: %d", root_dir_sectors);
     uint32_t data_sectors = (fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol) - (fat_bpb->num_reserved_sectors + fat_bpb->fat_c * fat_size + root_dir_sectors);
     uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
     fs_fat_t *fat = (fs_fat_t*)fs;
@@ -263,9 +296,9 @@ fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer){
     kprintf("FAT12/6 on drive %c: Total clusters: %d, Cluster Size (bytes): %d\nFAT Size (sectors): %d\n[      ] Caching FAT (128kb)", 'A' + drive, fat->total_clusters, fat->sectors_per_cluster * 512, fat->sectors_per_fat);
     cache_fat(fat, 0);
     kprintf("\r[ DONE ]\n");
-    fat->root_dir_size_sectors = root_dir_sectors;
-    fat->root_dir_sector = fat_bpb->num_reserved_sectors + (fat_bpb->fat_c * fat_bpb->sectors_per_fat);
-    read_root_dir16(fat);
+    if(read_root_dir16(fat)){
+        return 0;
+    }
     return fat;
 }
 
