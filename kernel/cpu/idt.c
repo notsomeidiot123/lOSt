@@ -140,6 +140,25 @@ extern void _fhandler(irq_registers_t *regs, ...){
         "Reserved",
         "Software Panic!",
     };
+    char *opcodes[] = {
+        "ADD", "ADD", "ADD", "ADD", "ADD AL, ", "ADD EAX, ", "PUSH ES", "POP ES", "OR", "OR", "OR", "OR", "OR AL, ",
+        "OR EAX, ", "PUSH CS", "0x0F", "ADC", "ADC", "ADC", "ADC", "ADC AL,", "ADC EAX, ", "PUSH SS", "POP SS",
+        "SBB", "SBB", "SBB", "SBB", "SBB AL,", "SBB EAX,", "PUSH DS", "POP DS",
+        "AND", "AND", "AND", "AND", "AND AL,", "AND EAX,", "ES:", "DAA", "SUB", "SUB", "SUB", "SUB", "SUB AL,", "SUB EAX,", "CS:", "DAS",
+        "XOR", "XOR", "XOR", "XOR", "XOR AL,", "XOR EAX,", "SS:", "AAA", "CMP", "CMP", "CMP", "CMP", "CMP AL, ", "CMP EAX,", "DS:", "AAS",
+        "INC EAX", "INC ECX", "INC EDX", "INC EBX", "INC ESP", "INC EBP", "INC ESI", "INC EDI", "DEC EAX", "DEC ECX", "DEC EDX", "DEC EBX", "DEC ESP", "DEC EBP", "DEC ESP", "DEC EDI",
+        "PUSH EAX", "PUSH ECX", "PUSH EDX", "PUSH EBX", "PUSH ESP", "PUSH EBP", "PUSH ESI", "PUSH EDI", "POP EAX", "POP ECX", "POP EDX", "POP EBX", "POP ESP", "POP EBP", "POP ESI", "POP EDI",
+        "PUSHA", "POPA", "BOUND", "ARPL", "FS:", "GS:", "OPSIZE:", "ADSIZE", "PUSH", "IMUL", "PUSH", "IMUL", "INSB", "INSW", "OUTSB",  "OUTSW",
+        "JO", "JNO", "JB", "JNB", "JZ", "JNZ", "JBE", "JA", "JS", "JNS", "JP", "JNP", "JL", "JNL", "JLE", "JNLE",
+        "ADD", "ADD", "SUB", "SUB", "TEST","TEST","XCHG","XCHG","MOV","MOV","MOV","MOV","MOV","LEA","MOV", "POP",
+        "NOP", "XCHG EAX, ECX", "XCHG EAX, EDX", "XCHG EAX, EBX", "XCHG EAX, ESP", "XCHG EAX, EBP", "XCHG EAX, ESI", "XCHG EAX, EDI", "CBW", "CWD", "CALL", "WAIT", "PUSHF", "POPF", "SAHF", "LAHF",
+        "MOV AL,","MOV EAX","MOV X, AL", "MOV X, EAX", "MOVSB", "MOVSW", "CMPSB", "CMPSW", "TEST AL, ", "TEST EAX", "STOSB", "STOSW", "LODSB","LODSW", "SCASB", "SCASW",
+        "MOV AL,", "MOV CL,", "MOV DL,", "MOV BL,", "MOV AH,","MOV CH,", "MOV DH, ", "MOV BH,", "MOV EAX,", "MOV ECX, ", "MOV EDX, ", "MOV EBX,", "MOV ESP,", "MOV EBP,", "MOV ESI,", "MOV EDI,",
+        "N/A","N/A","RETN", "RETN", "LES", "LDS", "MOV","MOV","ENTER", "LEAVE", "RETF", "RETF", "INT3","INT", "INTO", "IRET",
+        "N/A", "N/A", "N/A", "N/A", "AAM", "AAD", "SALC", "XLAT", "ESC", "ESC", "ESC", "ESC" , "ESC", "ESC", "ESC", "ESC",
+        "LOOPNZ", "LOOPZ", "LOOP", "JCXZ", "IN AL", "IN EAX", "OUT AL", "OUT EAX", "CALL", "JMP", "JMP", "JMP", "IN AL, DX", "IN EAX, DX", "OUT DX, AL", "OUT DX, EAX",
+        "LOCK", "INT1", "REPNE:", "REP:", "HLT", "CMC", "N/A", "N/A", "CLC", "STC", "CLI", "STI", "CLD", "STD", "N/A", "N/A"
+    };
     set_color(0x1f);
     clear_screen();
     kprintf("f0und: Kernel panic!\nMessage: I'm sorry, your computer ran into an exception while running. Please   be patient while we attempt to fetch information about what went wrong.\n");
@@ -148,7 +167,7 @@ extern void _fhandler(irq_registers_t *regs, ...){
     kprintf("Occured at:    %x\n", regs->eip);
     kprintf("Base Pointer:  %x\n", regs->ebp);
     kprintf("Stack Pointer: %x\n", regs->esp);
-    kprintf("Opcode: %x | CS: %x | DS: %x | SS: %x\n", *((unsigned int *)(long)regs->eip), regs->cs, regs->ds, regs->ss == 0x10);
+    kprintf("Opcode: %x (%s)| CS: %x | DS: %x | SS: %x\n", *((unsigned int *)(long)regs->eip), opcodes[*((unsigned char *)(long)regs->eip)], regs->cs, regs->ds, regs->ss == 0x10);
     kprintf("When you are ready, please restart your computer to continue. Any data from before the exception unfortuantely may be lost.\n");
     kprintf("f0und: End Kernel Panic! Result: Critical Exception. Restart.\nCode: %x%x\n", regs->int_no, regs->err_code);
     for(;;);

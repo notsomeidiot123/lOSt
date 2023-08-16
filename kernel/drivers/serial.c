@@ -4,6 +4,7 @@
 #include "../memory/string.h"
 #include <stdarg.h>
 #include "../cpu/ksec.h"
+#include "serial.h"
 
 struct com_ports{
     uint16_t com[4];
@@ -152,17 +153,33 @@ uint32_t register_serial_listener(void *listener, int port, int pid){
             break;
         }
     }
+    ports.com_desc->listner_keys[index] = gen_driver_key(pid, (long)listener);
     ports.com_desc->listeners[index] = listener;
     ports.com_desc->listner_data_index[index] = 0;
-    ports.com_desc->listner_keys[index] = gen_driver_key(pid, (long)listener);
     return ports.com_desc->listner_keys[index];
 }
-
+void deregister_serial_listener(int port, uint32_t key){
+    int index;
+    for(int i = 0; i < 4; i++){
+        if(ports.com_desc->listner_keys[i] == key){
+            index = i;
+        }
+    }
+    ports.com_desc->listeners[index] = 0;
+    ports.com_desc->listner_data_index[index] = 0;
+    ports.com_desc->listner_keys[index] = 0;
+}
 int base_color;
 int buffer_index = 0;
 int xpos = 0;
 int ypos = 0;
 int padding = 1;
+
+uint8_t auto_send_return = 1;
+
+void toggle_auto_return(){
+    auto_send_return = !auto_send_return;
+}
 
 //moved from graphics/vga.c
 void clear_screen(){
@@ -177,7 +194,7 @@ void kputc(char c){
         serial_write(0, ' ');
         serial_write(0, '\b');
     }
-    if(c == '\n'){
+    if(c == '\n' && auto_send_return){
         serial_write(0, '\r');
     }
     
@@ -236,7 +253,7 @@ void kputd(int num){
     kputs(ltostr(i, 10, padding));
 }
 
-void kputx(unsigned int num){
+void kputx(int num){
     kputs(ltostr(num, 16, padding));
 }
 

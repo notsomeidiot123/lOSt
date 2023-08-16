@@ -11,7 +11,7 @@
 
 #define EXT_SIG 0xef53
 
-char *drive_type_strs[8] = {
+const char *drive_type_strs[8] = {
     "NULL  ",
     "VIRTL ",
     "FLOPPY",
@@ -50,7 +50,7 @@ typedef struct mbr_s{
     uint16_t boot_magic;
 }__attribute__((packed)) mbr_t;
 
-char *disk_types_ids[] = {
+const char *disk_types_ids[] = {
     "nl",
     "vd",
     "fd",
@@ -98,7 +98,7 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
                 //fall through to fat16 cause they are pretty much the same
             case FS_FAT16:
                 //fat16 sepcific things... i guess;
-                fs = (filesystem32_t *)register_fat16(fs, drive, part_start);
+                // fs = (filesystem32_t *)register_fat16(fs, drive, part_start);
                 break;
             case FS_FAT32:
                 //fat32 specific things, this time, do something ***slightly*** different
@@ -141,7 +141,7 @@ int register_drive(drive32_t *drive_to_register){
     return -1;
 }
 
-void *get_drive(int drive){
+drive32_t *get_drive(int drive){
     return drives[drive];
 }
 uint8_t get_drive_count(){
@@ -198,7 +198,7 @@ FILE *fopen(char *name, int mode){
         case FS_FAT16:
         case FS_FAT32:
         case FS_FAT:
-            fat_open_file(name, (fs_fat_t*)filesystems[name[0]-'A'], mode);
+            // fat_open_file(name, (fs_fat_t*)filesystems[name[0]-'A'], mode);
             break;
         default:
             break;

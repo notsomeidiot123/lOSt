@@ -17,7 +17,8 @@ enum Filesystem_Types{
     FS_FAT32 = 5,
     FS_EXT2  
 };
-
+extern const char *disk_types_ids[];
+extern const char *drive_type_strs[8];
 //another example of why we don't write code at 3 am
 typedef struct drive32_s{
     char number;
@@ -78,7 +79,7 @@ extern int register_drive(drive32_t *drive_to_register);
 extern uint8_t get_drive_count();
 extern uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive);
-extern void *get_drive(int drive);
+extern drive32_t *get_drive(int drive);
 extern int register_fs(filesystem32_t *fs);
 
 //WARNING: FOPEN ALLOCATES MEMORY

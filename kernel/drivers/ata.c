@@ -100,6 +100,7 @@ int ata_identify(ata_drive32_t *drive){
     }
     // drive->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
     drive->drive_s.flags.removable = 0;
+    drive->drive_s.bytes_per_sector = 512;
     if(IS_LBA48(buffer)){
         drive->drive_s.size_high = GET_SZ48H(buffer);
         drive->drive_s.size_low = GET_SZ48L(buffer);
@@ -135,6 +136,7 @@ int ata_identify(ata_drive32_t *drive){
     }
     // slave->flags.lba48 = IS_LBA48(buffer) ? 1 : 0;
     slave->drive_s.flags.removable = 0;
+    slave->drive_s.bytes_per_sector = 512;
     if(IS_LBA48(buffer)){
         slave->drive_s.size_high = GET_SZ48H(buffer);
         slave->drive_s.size_low = GET_SZ48L(buffer);

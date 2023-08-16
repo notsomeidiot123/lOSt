@@ -1,3 +1,5 @@
+#include <stdarg.h>
+#include "mmanager.h"
 int kstrlen(char *s){
     int i = 0;
     while(*(s+i)){
@@ -67,7 +69,7 @@ void clearmem(void *ptr, int count){
         ptr = 0;
     }
 }
-void kstrcat(char *dest, char* first, char *second){
+void kstrcat( char *dest, char* first, char *second){
     int pos = 0;
     while(first[pos]){
         dest[pos] = first[pos];
@@ -76,4 +78,77 @@ void kstrcat(char *dest, char* first, char *second){
     while(*second){
         dest[pos++] = *(second++);
     }
+}
+/*
+
+Replaces formats inside of string {format} with arguments specified
+WARNING: CALLER IS RESPONSIBLE FOR FREEING
+
+*/
+char *ksprintf(char *format, ...){
+    int pages = kstrlen(format)/4096 + 1;
+    char *final = kmalloc(pages, 6);
+    char *str;
+    int i;
+    va_list arg;
+    va_start(arg, format);
+    for(char *fmt = format; *fmt != 0; fmt++){
+        while(*fmt != '%'){
+            if(*fmt == 0){
+                return final;
+            }
+            char c[2] = {*fmt, 0};
+            kstrcat(final, final, c);
+            fmt++;
+        }
+        fmt++;
+        switch(*fmt){
+            case 'c' : 
+                if(kstrlen(final) + 1 >= 4096 * pages){
+                    char *tmp = kmalloc(++pages, 6);
+                    kmemcpy(final, tmp, kstrlen(final));
+                }
+                i = va_arg(arg, int);
+                kstrcat(final, final, (char []){i, 0});
+                break;
+            case 'd':
+                i = va_arg(arg, int);
+                if(i < 0){
+                    i = -i;
+                    kstrcat(final, final, "-");
+                }
+                if(kstrlen(final) + kstrlen(ltostr(i, 10, 0)) >= 4096 * pages){
+                    char *tmp = kmalloc(++pages, 6);
+                    kmemcpy(final, tmp, kstrlen(final));
+                }
+                kstrcat(final, final, ltostr(i, 10, 0));
+                break;
+            case 'x':
+                i = va_arg(arg, int);
+                if(kstrlen(final) + kstrlen(ltostr(i, 16, 0)) >= 4096 * pages){
+                    char *tmp = kmalloc(++pages, 6);
+                    kmemcpy(final, tmp, kstrlen(final));
+                }
+                kstrcat(final, final, ltostr(i, 16, 0));
+                break;
+            case 'o':
+                i = va_arg(arg, int);
+                if(kstrlen(final) + kstrlen(ltostr(i, 8, 0)) >= 4096 * pages){
+                    char *tmp = kmalloc(++pages, 6);
+                    kmemcpy(final, tmp, kstrlen(final));
+                }
+                kstrcat(final, final, ltostr(i, 8, 0));
+                break;
+            case 's':
+                
+                str = va_arg(arg, char *);
+                if(kstrlen(final) + kstrlen(str) >= 4096 * pages){
+                    char *tmp = kmalloc(++pages, 6);
+                    kmemcpy(final, tmp, kstrlen(final));
+                }
+                kstrcat(final, final, str);
+                break;
+        }
+    }
+    return final;
 }

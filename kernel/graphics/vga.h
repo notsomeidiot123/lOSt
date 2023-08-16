@@ -13,4 +13,7 @@ extern void clear_screen();
 extern void textmode_print_load();
 extern void disp_str(int x, int y, char *str);
 
+extern unsigned short *get_framebuffer();
+extern void set_framebuffer(unsigned short *);
+
 extern int padding;

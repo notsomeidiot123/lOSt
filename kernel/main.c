@@ -12,6 +12,7 @@
 #include "memory/string.h"
 #include "drivers/ata.h"
 #include "cpu/ksec.h"
+#include "eshell/eshell.h"
 
 char catstr[60];
 
@@ -44,10 +45,18 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // kprintf("[      ] Identifying PATA Drives");
     ata_identify_all();
     // kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
-    fopen("A:/test.txt", MODE_WRITE);
+    // fopen("A:/test.txt", MODE_WRITE);
+    FILE *lostrc = 0;
+    
     kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
+    if(lostrc == 0){
+        disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
+        disp_str(40, 15, "Booting into emergency shell!");
+        eshell();
+    }
+    // disp_str()
     
 };
 

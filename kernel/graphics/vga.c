@@ -22,6 +22,14 @@ void textmode_print_load(){
     }
 }
 
+unsigned short *get_framebuffer(){
+    return vga_buffer;
+}
+
+void set_framebuffer(unsigned short * buf){
+    vga_buffer = buf;
+}
+
 extern void disp_str(int x, int y, char *str){
     int i = 0;
     int start = x + (y*80) - kstrlen(str)/2 - 1;
