@@ -48,8 +48,12 @@ typedef struct ata_drive32_s{
 
 
 typedef struct fs32_s{
+    //populated by detect_fs()
     char mountID;
+    //populated by detect_fs()
     uint8_t type;
+    //populated by detect_fs()
+    uint8_t partition;
     uint8_t drive;
     struct fs_flags{
         uint8_t read_only:1;
@@ -58,8 +62,13 @@ typedef struct fs32_s{
         uint8_t removable:1;
         uint8_t res:4;
     }flags;
+    //populated by detect_fs()
     uint32_t start_low;
+    //populated by detect_fs();
     uint32_t start_high;
+    //populated by the filesystem driver
+    uint32_t sector_size_bytes;
+    //populated by detect_fs();
     uint32_t size_low;
     uint32_t size_high;
 }filesystem32_t;

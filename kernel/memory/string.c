@@ -152,3 +152,47 @@ char *ksprintf(char *format, ...){
     }
     return final;
 }
+
+int is_delim(char c, char *delim){
+    while(*delim){
+        if(c == *delim){
+            return 1;
+        }
+        delim++;
+    }
+    return 0;
+}
+
+char *kstrtok(char *to_tok, char* delim){
+    static char* static_str;
+    if(!to_tok){
+        to_tok = static_str;
+    }
+    if(!to_tok){
+        return 0;
+    }
+
+    while(1){
+        if(is_delim(*to_tok, delim)){
+            to_tok++;
+            continue;
+        }
+        else if(*to_tok == 0){
+            return 0;
+        }
+        break;
+    }
+    char *ret = to_tok;
+    while(1){
+        if(!*to_tok){
+            static_str = to_tok;
+            return ret;
+        }
+        else if(is_delim(*to_tok, delim)){
+            *to_tok = 0;
+            static_str = to_tok + 1;
+            return ret;
+        }
+        to_tok++;
+    }
+}

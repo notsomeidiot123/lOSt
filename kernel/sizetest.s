@@ -1,0 +1,2 @@
+global endkernel
+endkernel:

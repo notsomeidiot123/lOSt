@@ -4,7 +4,7 @@ bits 32
 ; jmp start
 
 extern kmain
-
+global start
 start:
     mov ax, 0x10
     mov ds, ax

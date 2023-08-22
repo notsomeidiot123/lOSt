@@ -67,7 +67,7 @@ result in the pointer only being destroyed (and freed) upon shudown/drive remova
 */
 
 
-filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector){
+filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector, mbr_t *mbr, uint8_t partition){
     int id = 0;
     for(int i = 0; i < 26; i++){
         if(filesystems[i] == 0){
@@ -89,9 +89,11 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
         uint32_t data_sectors = (fat_bpb->sectors_in_vol == 0 ? fat_bpb->large_sector_count : fat_bpb->sectors_in_vol) - (fat_bpb->num_reserved_sectors + fat_bpb->fat_c * fat_size + root_dir_sectors);
         uint32_t total_clusters = data_sectors/fat_bpb->sectors_per_cluster;
         filesystem32_t *fs = kmalloc(1, 6);
+        filesystem32_t *check = fs;
+        fs->size_low = mbr->partiton_table[partition].size_sectors;
+        fs->partition = partition;
         fs->start_low = start_sector;
         fs->mountID = id;
-        //if the first two clusters are all 0's, it's EXT, else, it's NTFS or FAT12/16/32 (screw NTFS)
         fs->type = total_clusters <= 0xfff ? FS_FAT12: total_clusters <= 0xffff ? FS_FAT16 : FS_FAT32;
         switch(fs->type){
             case FS_FAT12:
@@ -102,12 +104,16 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
                 break;
             case FS_FAT32:
                 //fat32 specific things, this time, do something ***slightly*** different
+                fs = (filesystem32_t *)fat32_register(fs, drive, part_start);
             break;
             default:
                 //how did we get here?
                 break;
         }
-        fs->type = FS_FAT;
+        if(fs != check){
+            kfree(check);
+        }        
+        // fs->type = FS_FAT;
         filesystems[id] = fs;
     }
     
@@ -131,7 +137,8 @@ int register_drive(drive32_t *drive_to_register){
                 if(!(mbr->partiton_table[j].partiton_type == 0 || mbr->partiton_table[j].partiton_type == 0x83 || mbr->partiton_table[j].partiton_type == 0x7f)){
                     uint16_t *part_start = kmalloc(1, 7);
                     read_from_drive(part_start, 8, mbr->partiton_table[j].partition_start, i);
-                    filesystem32_t *fs = detect_fs(part_start, i, mbr->partiton_table[j].partition_start);
+                    filesystem32_t *fs = detect_fs(part_start, i, mbr->partiton_table[j].partition_start, mbr, j);
+                    kfree(part_start);
                 }
             }
             return 0;

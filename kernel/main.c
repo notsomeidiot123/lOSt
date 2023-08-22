@@ -16,6 +16,11 @@
 
 char catstr[60];
 
+#define MAX_KERNEL_SIZE 0x80 * 512
+
+extern void start;
+extern void end;
+
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     textmode_print_load();
     set_color(0x7);
@@ -47,7 +52,12 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
     // fopen("A:/test.txt", MODE_WRITE);
     FILE *lostrc = 0;
-    
+    kprintf("Size of Kernel: %d\n", &end - &start);
+    if(&end - &start > MAX_KERNEL_SIZE){
+        kprintf("lOSt Developer Warning: HEY!!! DUMMY! THE KERNEL'S NOT BEING FULLY LOADED, GO UPDATE THE BOOTLOADER >:(\n");
+        disp_str(40, 0, "lOSt Developer Warning: HEY! THE KERNEL'S TOO LARGE, LOOK AT THE MONITOR!");
+        while(1);
+    }
     kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
@@ -55,9 +65,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
         disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
         disp_str(40, 15, "Booting into emergency shell!");
         eshell();
-    }
-    // disp_str()
-    
+    }    
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

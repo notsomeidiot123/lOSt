@@ -6,6 +6,7 @@ qemu-img resize bin/lOSt.bin 1M
 nasm -f bin bootloader/boot/main.s -o bin/bootloader.o
 nasm -f elf kernel/kentry.s -o bin/kentry.o
 nasm -f elf kernel/cpu/idt.s -o bin/idt.o
+nasm -f elf kernel/sizetest.s -o bin/sztest.o
 
 CFLAGS="-g -c -m32 -ffreestanding -fno-pie -O0 -Wno-int-to-pointer-cast -Wno-incompatible-pointer-types -fno-stack-protector -o"
 cd kernel/
@@ -37,7 +38,7 @@ for d in ./*/; do
 done
 echo
 cd obj
-ld ../../bin/kentry.o *.o ../../bin/idt.o -Ttext 0x10000 --oformat binary -melf_i386 -o ../../bin/base.o
+ld ../../bin/kentry.o *.o ../../bin/idt.o ../../bin/sztest.o -Ttext 0x10000 --oformat binary -melf_i386 -o ../../bin/base.o
 ls *.o
 cd ../../
 cat bin/bootloader.o bin/base.o >> bin/lOSt.bin
@@ -52,7 +53,7 @@ echo "formatting:"
 
 
 qemu-img resize --shrink drives/data.hd 768M 
-mkfs.fat -F 16 -S 512 -s 32 drives/data.hd 
+mkfs.fat -F 32 drives/data.hd 
 # mkfs.fat drives/testhd.hd
 
 cat drives/data.hd >> bin/lOSt.bin

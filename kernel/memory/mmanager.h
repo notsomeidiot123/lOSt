@@ -12,14 +12,14 @@ typedef struct mmap_entry{
 
 typedef struct page_entry{
     uint8_t pid;
-    char used : 1;
-    char unusable : 1;
-    char linked_to_next:1;
-    char linked_to_last:1;
-    char read:1;
-    char write:1;
-    char execute:1;
-    char reserved:1;
+    uint8_t used : 1;
+    uint8_t unusable : 1;
+    uint8_t linked_to_next:1;
+    uint8_t linked_to_last:1;
+    uint8_t read:1;
+    uint8_t write:1;
+    uint8_t execute:1;
+    uint8_t reserved:1;
 }page_entry_t;
 
 #define MEMORY_PERM_READ 0x4

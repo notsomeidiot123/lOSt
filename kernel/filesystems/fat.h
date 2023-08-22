@@ -33,7 +33,7 @@ typedef struct fat32_ebpb_s{
     uint32_t sectors_per_fat;
     uint16_t flags;
     uint16_t fat_version;
-    uint16_t root_dir_cluster;
+    uint32_t root_dir_cluster;
     //relative to partition start
     uint16_t sector_FSInfo;
     uint16_t backup_bs_sector;
@@ -43,7 +43,8 @@ typedef struct fat32_ebpb_s{
     //must be 0x28 or 0x29
     uint8_t sig;
     uint32_t volume_id;
-    uint32_t volume_label[8];
+    uint8_t volume_label[11];
+    uint8_t sys_id[8];
 }__attribute__((packed)) fat32_ebpb_t;
 
 typedef struct fat32_fsinfo_s{
@@ -92,7 +93,13 @@ typedef struct fat_file_s{
     uint32_t filesize_bytes;
     
 }fat_file_t;
-
+typedef fat_file_t dirent_t;
+typedef struct fat_file_type_s {
+    FILE file_base;
+    uint32_t start_cluster;
+    uint32_t current_cluster;
+    dirent_t dirent;
+}FAT_FILE;
 typedef struct fs_fat_s{
     filesystem32_t fs_base;
     //Offset from start of partition, not start of drive
@@ -104,29 +111,25 @@ typedef struct fs_fat_s{
     uint32_t sectors_per_cluster;
     uint32_t first_data_sector;
     uint32_t free_clusters;
-
+    uint32_t root_dir_cluster;
     uint32_t cached_clusters_start;
     uint32_t cached_clusters_size;
     uint32_t *fat_cache;
     uint32_t last_free_cluster;
+    //in sectors
     uint32_t fat_cache_size;
     
-    fat_file_t *root_dir_entries;
-    uint32_t root_dir_size_entries;
+    fat_file_t *root_dir_entries;//for fat12/6 only
+    uint32_t root_dir_size_entries;//for fat12/6 only
 
-    fat_file_t root_dirent;
+    FAT_FILE root_file;
 }fs_fat_t;
-typedef fat_file_t dirent_t;
-typedef struct fat_file_type_s {
-    FILE file_base;
-    uint32_t start_cluster;
-    uint32_t current_cluster;
-    dirent_t dirent;
-}FAT_FILE;
 
 
 
-FAT_FILE *fat_open_file(char *filename, fs_fat_t* fat, uint8_t mode);
-void fat_read(FILE *file, int size, char *buffer);
-int fat_write(FILE *file, int size, char *buffer);
-fs_fat_t *register_fat16(filesystem32_t *fs, int drive, uint16_t *buffer);
+
+
+FAT_FILE *fat32_open_file(char *filename, fs_fat_t* fat, uint8_t mode);
+int fat32_read(FILE *file, int size, char *buffer, fs_fat_t *fat);
+int fat32_write(FILE *file, int size, char *buffer, fs_fat_t *fat);
+fs_fat_t *fat32_register(filesystem32_t *fs, int drive, uint16_t *buffer);

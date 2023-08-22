@@ -6,6 +6,7 @@
 #include "../drivers/timer.h"
 #include "../cpu/io.h"
 #include "../drivers/ps2.h"
+#include "../libs/defs.h"
 #include <stdint.h>
 
 char *current_command;
@@ -18,6 +19,19 @@ struct{
     char *current_directory;
     uint8_t exit;
     uint32_t driver_key;
+    struct user{
+        struct uinfo{
+            uint8_t valid :1;
+            uint8_t exec:1;
+            uint8_t edit:1;
+            uint8_t delete:1;
+            uint8_t kernel:1;
+        }uinfo;
+        uint8_t user_id;
+        uint32_t password_hash;
+        char username[32];
+    }users[32];
+    uint8_t current_user;
 }eshell_settings = {0};
 uint8_t lock_last_line = 0;
 
@@ -110,9 +124,44 @@ void exec_command(char *command){
             kfree(string);
         }
     }
+    else if(!kstrcmp(command, "cd ../")){
+        int last = 0;
+        int i = 1;
+        if(kstrlen(eshell_settings.current_directory) < 3){
+            return;
+        }
+        while(eshell_settings.current_directory[i]){
+            if(eshell_settings.current_directory[i] == '/'){
+                last = i;
+            }
+            i++;
+        }
+        eshell_settings.current_directory[last] = 0;
+    }
+    else if(!kstrcmp(command, "user")){
+        if(!eshell_settings.users[eshell_settings.current_user].uinfo.valid){
+            write_screen("lOSt\n");
+        }
+        else{
+            write_screen(eshell_settings.users[eshell_settings.current_user].username);
+
+        }
+    }
+    else if(!kstrcmp(command, "osinfo")){
+        write_screen("Kernel: ");
+        write_screen(OS_VERSION);
+        write_screen("\n");
+        write_screen("Shell: ");
+        write_screen(SHELL_VERSION);
+        write_screen("\n");
+    }
+    else if(!kstrcmp(command, "login")){
+        write_screen("WIP\n");
+    }
     else{
         write_screen("Command not found: ");
         write_screen(command);
+        write_screen("\n");
     }
 }
 
@@ -124,7 +173,7 @@ void getch(char c){
             exec_command(current_command);
             if(!active_proc && eshell_settings.exit == 0){
                 write_screen(eshell_settings.current_directory);
-                write_screen_char('>');
+                write_screen("/>");
                 minx = x;
                 miny = y;
             }
@@ -157,7 +206,7 @@ void eshell(){
     outb(0x3d5, 0x20);
     toggle_auto_return();
     eshell_settings.current_directory = kmalloc(1, 6);
-    kmemcpy((void *)"A:/",(void *) eshell_settings.current_directory, 4);
+    kmemcpy((void *)"A:",(void *) eshell_settings.current_directory, 4);
     current_command = kmalloc(1, 6);
     eshell_settings.driver_key = register_serial_listener((void*)getch, 0, 0);
     write_screen("\r[ DONE ]\n");
