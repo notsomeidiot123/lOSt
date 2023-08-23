@@ -50,7 +50,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     // kprintf("[      ] Identifying PATA Drives");
     ata_identify_all();
     // kprintf("\r[%s]\n", ata_res ? "ERROR!" : " DONE ");
-    // fopen("A:/test.txt", MODE_WRITE);
+    fopen("A:/test.txt", MODE_WRITE);
     FILE *lostrc = 0;
     kprintf("Size of Kernel: %d\n", &end - &start);
     if(&end - &start > MAX_KERNEL_SIZE){

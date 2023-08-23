@@ -57,7 +57,8 @@ void write_screen_char(char c){
         x = 1;
     }
     else if(c== '\b'){
-        disp_str(x--, y, " ");
+        // disp_str(x--, y, " ");
+        x--;
         if(x <= minx) x = minx;
         if(y <= miny) y = miny;
         if(x < 1){

@@ -201,9 +201,14 @@ int register_fs(filesystem32_t *filesystem){
 
 //WARNING: FOPEN ALLOCATES MEMORY
 FILE *fopen(char *name, int mode){
+    if(!name){
+        return 0;
+    }
     switch(filesystems[name[0]- 'A']->type){
         case FS_FAT16:
         case FS_FAT32:
+            return (FILE *)fat32_open_file(name + 2, (fs_fat_t *)filesystems[name[0] - 'A'], mode);
+        break;
         case FS_FAT:
             // fat_open_file(name, (fs_fat_t*)filesystems[name[0]-'A'], mode);
             break;

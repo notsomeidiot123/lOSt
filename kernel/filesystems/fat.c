@@ -47,12 +47,10 @@ dirent_t *search_dir(char *file, dirent_t *dir, uint32_t dirsize){
                     continue;
                 }
             }
-            kprintf("Returning found file!\n");
             return &dir[i];
         }
         
     }
-    kprintf("end search\n");
     return 0;
 }
 
@@ -93,13 +91,19 @@ int fat32_read(FILE *file, int size, char *buffer, fs_fat_t *fat){
     int sectors = ((size / fat->fs_base.sector_size_bytes) + 1) * fat->sectors_per_cluster;
     uint32_t cluster = fatf->current_cluster;
     while(sectors > 0){
-        read_from_drive((uint16_t *)buffer, fat->sectors_per_cluster, fat->first_data_sector + (cluster * fat->sectors_per_cluster), fat->fs_base.drive);
-        cluster = get_next_cluster32(cluster, fat);
         if(cluster >= 0x0FFFFFF8){
             break;
         }
+        read_from_drive((uint16_t *)buffer, fat->sectors_per_cluster, fat->first_data_sector + (cluster * fat->sectors_per_cluster), fat->fs_base.drive);
+        if(fatf->position_in_cluster != 0){
+            kmemcpy(buffer, buffer+fatf->position_in_cluster, size);
+            fatf->position_in_cluster = size;
+        }
+        cluster = get_next_cluster32(cluster, fat);  
         sectors /= fat->sectors_per_cluster;
     }
+    fatf->position_in_cluster = size % (fat->sectors_per_cluster * fat->fs_base.sector_size_bytes);
+    fatf->current_cluster = cluster;
     return 0;
 }
 
@@ -116,13 +120,41 @@ FAT_FILE *fat32_open_file(char *filename, fs_fat_t* fat, uint8_t mode){
     char *str_to_tok = kmalloc((kstrlen(filename)/4096) + 1, 6);
     kmemcpy(filename, str_to_tok, kstrlen(filename));
     char *token = kstrtok(str_to_tok, "/");
+    
     FAT_FILE *dir = &fat->root_file;
+    dirent_t *dirents = kmalloc(fat->fs_base.sector_size_bytes * fat->sectors_per_cluster * 2048/4096, 6);
+    dirent_t dirent;
     while(token){
+        fat32_read((FILE *)dir, -1, (char *)dirents, fat);
+        int dirsize = 0;
+        //while each file has a valid name (all files must have valid names)
+        //loop and inc dirsize
+        while(dirents->name[0]){
+            dirsize++;
+        }
+        dirent_t *result = search_dir(token, dirents, dirsize);
+        if(!result){
+            return 0;
+        }
+        dirent = *result;
+        dir->current_cluster = result->first_cluster | (result->first_cluster_high << 16);
+        // dir->dirent = *result;
+        dir->start_cluster = dir->current_cluster;
+        dir->file_base.position = 0;
+        dir->position_in_cluster = 0;
 
-        fat32_read(dir, -1, char *buffer, fs_fat_t *fat)
-        dir = search_dir(char *file, dirent_t *dir, uint32_t dirsize)
         token = kstrtok(0, "/");
     }
+    FAT_FILE *ret = kmalloc(1, 6);
+    ret->dirent = dirent;
+    ret->file_base.fs_type = FS_FAT32;
+    ret->file_base.mode = mode;
+    ret->file_base.permission = 7;
+    ret->file_base.position = 0;
+    ret->position_in_cluster = 0;
+    ret->current_cluster = dirent.first_cluster | (dirent.first_cluster_high << 16);
+    ret->start_cluster = ret->current_cluster;
+    return ret;
 }
 
 fs_fat_t *fat32_register(filesystem32_t *fs, int drive, uint16_t *buffer){
@@ -143,6 +175,10 @@ fs_fat_t *fat32_register(filesystem32_t *fs, int drive, uint16_t *buffer){
     fatfs->total_clusters = data_sectors / fat_boot->fat_bpb.sectors_per_cluster;
     fatfs->fs_base.sector_size_bytes = fat_boot->fat_bpb.bytes_per_sector;
     fatfs->root_dir_cluster = fat_boot->root_dir_cluster;
+    //Why is this one line causing me so much god damn trouble???
+    //Error: hangs on assignment, won't work without being assigned
+    //im going to bed...
+    fatfs->sectors_per_cluster = fat_boot->fat_bpb.sectors_per_cluster;
     fatfs->fat_cache_size = fat_boot->fat_bpb.sectors_per_fat < 2048 ? fat_boot->fat_bpb.sectors_per_fat : 2048;
     if(fat_boot->fat_bpb.fat_c > 1){
         fatfs->fat_offset_secondary = fat_boot->fat_bpb.num_reserved_sectors + fat_size;
@@ -154,5 +190,6 @@ fs_fat_t *fat32_register(filesystem32_t *fs, int drive, uint16_t *buffer){
     fatfs->root_file.file_base.mode = 6;
     fatfs->root_file.file_base.permission = 6;
     fatfs->root_file.file_base.position = 0;
+    
     return fatfs;
 }

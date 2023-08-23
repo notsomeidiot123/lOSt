@@ -99,6 +99,7 @@ typedef struct fat_file_type_s {
     uint32_t start_cluster;
     uint32_t current_cluster;
     dirent_t dirent;
+    uint32_t position_in_cluster;
 }FAT_FILE;
 typedef struct fs_fat_s{
     filesystem32_t fs_base;
