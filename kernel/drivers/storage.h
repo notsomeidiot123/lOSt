@@ -89,6 +89,7 @@ extern uint8_t get_drive_count();
 extern uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern drive32_t *get_drive(int drive);
+extern filesystem32_t *get_fs(int fs);
 extern int register_fs(filesystem32_t *fs);
 
 //WARNING: FOPEN ALLOCATES MEMORY

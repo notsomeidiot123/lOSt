@@ -8,7 +8,7 @@ nasm -f elf kernel/kentry.s -o bin/kentry.o
 nasm -f elf kernel/cpu/idt.s -o bin/idt.o
 nasm -f elf kernel/sizetest.s -o bin/sztest.o
 
-CFLAGS="-g -c -m32 -ffreestanding -fno-pie -O0 -Wno-int-to-pointer-cast -Wno-incompatible-pointer-types -fno-stack-protector -o"
+CFLAGS="-g -c -m32 -ffreestanding -fno-pie -mno-sse -O0 -Wno-int-to-pointer-cast -Wno-incompatible-pointer-types -fno-stack-protector -o"
 cd kernel/
 gcc main.c $CFLAGS obj/main.o
 # # gcc graphics/vga.c $CFLAGS obj/vga.o

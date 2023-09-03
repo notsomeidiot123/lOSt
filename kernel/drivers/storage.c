@@ -65,7 +65,9 @@ WARNING: This function allocates memory by itself... the caller is *technically*
 responsible for destroying the pointer, however the intended use will most likely
 result in the pointer only being destroyed (and freed) upon shudown/drive removal
 */
-
+filesystem32_t *get_fs(int fs){
+    return filesystems[fs];
+}
 
 filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector, mbr_t *mbr, uint8_t partition){
     int id = 0;
@@ -104,7 +106,7 @@ filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector
                 break;
             case FS_FAT32:
                 //fat32 specific things, this time, do something ***slightly*** different
-                fs = (filesystem32_t *)fat32_register(fs, drive, part_start);
+                fs = (filesystem32_t *)fat32_register(fs, drive, part_start, start_sector);
             break;
             default:
                 //how did we get here?

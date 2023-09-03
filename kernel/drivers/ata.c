@@ -239,46 +239,82 @@ uint16_t *ata_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uin
     }
     return buffer;
 }
-
 uint16_t ata28_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
     wait_ready(drive);
     outb(drive->base_port DRIVE_HEAD, 0xE0 | (drive->flags.slave << 4) | ((sectors >> 24) & 0xf));
     // wait_ready(drive);
     outb(drive->base_port ERROR, 0);
     outb(drive->base_port SECTOR_COUNT, sectors);
-    outb(drive->base_port LBA_LOW, start & 0xff);
-    outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
+    outb(drive->base_port LBA_LOW, start & 0x0000ff);
+    outb(drive->base_port LBA_MID, (start & 0x00ff00) >> 8);
     outb(drive->base_port LBA_HIH, (start & 0xff0000) >> 16);
     outb(drive->base_port COMMAND, 0x30);
-    // wait_ready(drive);
+    wait_ready(drive);
     for(int j = 0; j < sectors; j++){
-        int trycount = 0;
-        int trymax = 5;//replace with settings later
-        int res = poll_drive(drive);
-        while(trycount < trymax && res){
-            if(res){
-                res = poll_drive(drive);
-                trycount++;
-            }
-            else{
-                break;
-            }
-        }
-        if(res){
-            return res;
-        }
+        // int trycount = 0;
+        // int trymax = 6;//replace with settings later
+        // int res = poll_drive(drive);
+        // while(trycount < trymax && res){
+        //     if(res){
+        //         res = poll_drive(drive);
+        //         trycount++;
+        //     }
+        //     else{
+        //         break;
+        //     }
+        // }
+        // if(res){
+        //     return 0;
+        // }
         for(int i = 0; i < 256; i++){
-            outw(drive->base_port DATA, buffer[(j * 256) + i]);
-            outb(0x80, 0); //very short delay
-            // kprintf("%x ", data);
+            outw(drive->base_port DATA, buffer[(j * 256)+ i]);
+            
             // poll_drive(drive);
         }
     }
-    wait_ready(drive);
-    //0xE7 = flush cache
-    outb(drive->base_port COMMAND, 0xE7);
-    return E_NO_ERR;
+    outb(drive->base_port COMMAND, 0xe7);
+    return 0;
 }
+
+// uint16_t ata28_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
+//     wait_ready(drive);
+//     outb(drive->base_port DRIVE_HEAD, 0xE0 | (drive->flags.slave << 4) | ((sectors >> 24) & 0xf));
+//     // wait_ready(drive);
+//     outb(drive->base_port ERROR, 0);
+//     outb(drive->base_port SECTOR_COUNT, sectors);
+//     outb(drive->base_port LBA_LOW, start & 0xff);
+//     outb(drive->base_port LBA_MID, (start & 0xff00) >> 8);
+//     outb(drive->base_port LBA_HIH, (start & 0xff0000) >> 16);
+//     outb(drive->base_port COMMAND, 0x30);
+//     wait_ready(drive);
+//     for(int j = 0; j < sectors; j++){
+//         int trycount = 0;
+//         int trymax = 5;//replace with settings later
+//         int res = poll_drive(drive);
+//         while(trycount < trymax && res){
+//             if(res){
+//                 res = poll_drive(drive);
+//                 trycount++;
+//             }
+//             else{
+//                 break;
+//             }
+//         }
+//         if(res){
+//             return res;
+//         }
+//         for(int i = 0; i < 256; i++){
+//             outw(drive->base_port DATA, buffer[(j * 256) + i]);
+//             kprintf("Data port: 0x%x", drive->base_port);
+//             outb(0x80, 0); //very short delay
+//             poll_drive(drive);
+//         }
+//     }
+//     wait_ready(drive);
+//     //0xE7 = flush cache
+//     outb(drive->base_port COMMAND, 0xE7);
+//     return E_NO_ERR;
+// }
 
 uint16_t ata_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
     if(drive->flags.lba48){

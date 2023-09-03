@@ -58,6 +58,10 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
         disp_str(40, 0, "lOSt Developer Warning: HEY! THE KERNEL'S TOO LARGE, LOOK AT THE MONITOR!");
         while(1);
     }
+    uint16_t *buf = kmalloc(1, 6);
+    write_to_drive(buf, 0, 1, 0);
+    read_from_drive(0, 1, 0, 0);
+    for(;;);
     kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
