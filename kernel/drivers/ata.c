@@ -241,8 +241,17 @@ uint16_t *ata_read(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uin
 }
 uint16_t ata28_write(uint16_t *buffer, ata_drive32_t *drive, uint32_t sectors, uint32_t start){
     wait_ready(drive);
+    int stat = inb(drive->base_port STATUS);
+    wait_secs(5);
+    while(stat & 0x80 && !(stat & 0x8)){
+        stat = inb(drive->base_port STATUS);
+        if(stat & 1 || stat & 0x20 || wait_secs(0)){
+            return -1;
+        }
+    }
     outb(drive->base_port DRIVE_HEAD, 0xE0 | (drive->flags.slave << 4) | ((sectors >> 24) & 0xf));
     // wait_ready(drive);
+    kprintf("Sector: %x, Sector count: %d", start, sectors);
     outb(drive->base_port ERROR, 0);
     outb(drive->base_port SECTOR_COUNT, sectors);
     outb(drive->base_port LBA_LOW, start & 0x0000ff);

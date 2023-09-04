@@ -162,35 +162,6 @@ void exec_command(char *command){
     else if(!kstrcmp(command, "login")){
         write_screen("WIP\n");
     }
-    else if(!kstrcmp(command, "testw")){
-        write_screen("Testing FS");
-        if(fat32_create_file("test.t", "/", get_fs(0))){
-            write_screen("Created File!\n");
-        }
-        
-    }
-    else if(!kstrcmp(command, "testr")){
-        FAT_FILE *file = fat32_open_file("/test.t", get_fs(0), 6);
-        if(file){
-            write_screen("Success!\n");
-        }
-        else{
-            write_screen("FAILED!\n");
-            write_screen("listing dir:\n");
-            char *buf = kmalloc(1, 6);
-            fat32_read(fat32_open_file("/", get_fs(0), 6), 4096, buf, get_fs(0));
-            dirent_t *dirents = buf;
-            int i = 0;
-            while(dirents[i].name[0]){
-                int j = 0;
-                while(dirents[i].name[j]){
-                    write_screen_char(dirents[i].name[j++]);
-                }
-                i++;
-            }
-
-        }
-    }
     else{
         write_screen("Command not found: ");
         write_screen(command);

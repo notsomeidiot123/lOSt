@@ -53,19 +53,19 @@ echo "formatting:"
 
 
 qemu-img resize --shrink drives/data.hd 768M 
-mkfs.fat -F 32 drives/data.hd 
-# mkfs.fat drives/testhd.hd
+# mkfs.fat -F 32 drives/data.hd 
+mkfs.fat -F 32 drives/testhd.hd
 
 cat drives/data.hd >> bin/lOSt.bin
 qemu-img resize --shrink bin/lOSt.bin 1G
 echo "partitioning"
 parted bin/lOSt.bin mkpart primary 0% 25%\
         set 1 boot on
-parted bin/lOSt.bin mkpart primary fat32 25% 100%
+# parted bin/lOSt.bin mkpart primary fat32 25% 100%
 # parted drives/testhd.hd primary fat32 0% 100%
 echo -e "\nfinished"
 
 ./run
 
-hexdump -C bin/lOSt.bin > dump.hd
+# hexdump -C bin/lOSt.bin > dump.hd
 echo -e "\e[31mEnd\e[0m"

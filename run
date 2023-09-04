@@ -1,11 +1,12 @@
 #!/bin/bash
-qemu-system-x86_64 bin/lOSt.bin\
+qemu-system-i386 bin/lOSt.bin\
     -hdb drives/testhd.hd\
     -fda drives/testfd.fd\
     -no-reboot\
     -no-shutdown\
     -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
     -m 32M\
-    -d trace:*ide*
-    # -serial mon:stdio\
+    -serial mon:stdio
+    # -d trace:*ide*
+   
     

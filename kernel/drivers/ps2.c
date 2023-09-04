@@ -2,6 +2,7 @@
 #include "../cpu/io.h"
 #include "../cpu/idt.h"
 #include "ps2.h"
+#include <stdint.h>
 
 #define KB_DATA 0x60
 #define KB_STATUS 0x64
@@ -87,8 +88,8 @@ f12  : 0x9b
 
 
 
-char *translated_kb_codes = 
-"\0\e1234567890-=\b\tqwertyuiop[]\n\x01\x61sdfghjkl;\'`\x02\\zxcvbnm,./\x03*\x04 \x05\x90\x91\x92\x93\x94\x95\x95\x96\x97\x98\x99\xa0\xa1\xb7\xb8\xb9\xbd\xb4\xb5\xb6\xbb\xb1\xb2\xb3\xb0\xbe\0\0\0\x9a\x9b\0\0\0";
+uint8_t *translated_kb_codes = 
+(uint8_t *)"\0\e1234567890-=\b\tqwertyuiop[]\n\x01\x61sdfghjkl;\'`\x02\\zxcvbnm,./\x03*\x04 \x05\x90\x91\x92\x93\x94\x95\x95\x96\x97\x98\x99\xa0\xa1\xb7\xb8\xb9\xbd\xb4\xb5\xb6\xbb\xb1\xb2\xb3\xb0\xbe\0\0\0\x9a\x9b\0\0\0";
 
 char *shifted_nums = ")!@#$%^&*(";
 
@@ -146,6 +147,12 @@ char get_ascii(char scanned, char shift, char numlock){
 
 char shift_down = 0;
 char caps_lock = 0;
+void (*kb_listener_translated)(uint8_t c) = 0;
+void (*kb_listener_untranslated)(uint8_t c) = 0;
+
+void register_handlers(kb_handler translated_handler, kb_handler untranslated_handler){
+
+}
 
 void ps2_handler(irq_registers_t *regs){
     int scancode = inb(KB_DATA);
@@ -170,7 +177,12 @@ void ps2_handler(irq_registers_t *regs){
         last_key = scancode;
         last_char = get_ascii(translated_kb_codes[scancode], shift_down | caps_lock, 0);
         kprintf("%c", last_char);
-        
+        if(kb_listener_translated){
+            kb_listener_translated(last_char);
+        }
+        if(kb_listener_untranslated){
+            kb_listener_untranslated(last_key);
+        }
     }
     else{
         switch(translated_kb_codes[scancode ^ 0x80]){
