@@ -6,7 +6,6 @@ qemu-system-i386 bin/lOSt.bin\
     -no-shutdown\
     -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
     -m 32M\
+    -smp 2\
     -serial mon:stdio
     # -d trace:*ide*
-   
-    

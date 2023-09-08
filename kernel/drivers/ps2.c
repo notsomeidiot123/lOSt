@@ -1,6 +1,7 @@
 #include "../graphics/vga.h"
 #include "../cpu/io.h"
 #include "../cpu/idt.h"
+#include "kb.h"
 #include "ps2.h"
 #include <stdint.h>
 
@@ -66,7 +67,7 @@ int init_8042(){
         outb(KB_COMMAND, 0xA8);
     }
     outb(KB_COMMAND, 0xAE);
-
+    request_register_driver(register_handler);
     return 0;
 }
 
@@ -89,7 +90,7 @@ f12  : 0x9b
 
 
 uint8_t *translated_kb_codes = 
-(uint8_t *)"\0\e1234567890-=\b\tqwertyuiop[]\n\x01\x61sdfghjkl;\'`\x02\\zxcvbnm,./\x03*\x04 \x05\x90\x91\x92\x93\x94\x95\x95\x96\x97\x98\x99\xa0\xa1\xb7\xb8\xb9\xbd\xb4\xb5\xb6\xbb\xb1\xb2\xb3\xb0\xbe\0\0\0\x9a\x9b\0\0\0";
+(uint8_t *)"\0\e1234567890-=\b\tqwertyuiop[]\n\x81\x61sdfghjkl;\'`\x82\\zxcvbnm,./\x82*\x83 \x84\x90\x91\x92\x93\x94\x95\x95\x96\x97\x98\x99\xa0\xa1\xb7\xb8\xb9\xbd\xb4\xb5\xb6\xbb\xb1\xb2\xb3\xb0\xbe\0\0\0\x9a\x9b\0\0\0";
 
 char *shifted_nums = ")!@#$%^&*(";
 

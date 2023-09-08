@@ -11,21 +11,16 @@ nasm -f elf kernel/sizetest.s -o bin/sztest.o
 CFLAGS="-g -c -m32 -ffreestanding -fno-pie -mno-sse -O0 -Wno-int-to-pointer-cast -Wno-incompatible-pointer-types -fno-stack-protector -o"
 cd kernel/
 gcc main.c $CFLAGS obj/main.o
-# # gcc graphics/vga.c $CFLAGS obj/vga.o
 for d in ./*/; do
     if [ "$d" != "./obj/" ] && [ "$d" != "./libs/" ]; then
         echo -e "\033[1;32mCompiling files in $d\033[0m"
         for f in $d*.c; do
-            # if [[ -f $f ]]; then
-            #     echo "No file"
-            # else
-                echo -e "\033[1;36mfile: $f\033[0m"
-                SUF=".c"
-                SUF_REM=${f%"$SUF"}
-                END=${SUF_REM#"$d"}
-                # doing this, '#' removes prefix, and '%' removes suffix
-                gcc $f $CFLAGS obj/$END.o
-            # fi
+            echo -e "\033[1;36mfile: $f\033[0m"
+            SUF=".c"
+            SUF_REM=${f%"$SUF"}
+            END=${SUF_REM#"$d"}
+            # doing this, '#' removes prefix, and '%' removes suffix
+            gcc $f $CFLAGS obj/$END.o
         done
         for f in $d*.cpp; do
             # I give up. it won't compile anything either way if it's an invalid file, so i guess im safe... for now
