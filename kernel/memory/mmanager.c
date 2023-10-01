@@ -6,9 +6,16 @@ unsigned int max_address = 0;
 unsigned int total_usable = 0;
 bda_t *bda = (bda_t *)0x400;
 
-page_entry_t *page_table = (page_entry_t*) 0x50000;
+page_entry_t *page_table = (page_entry_t*) 0x80000;
 unsigned int page_table_size;
 
+/**********************************************************************************
+ *NOTE: The current memory manager is extremely inefficient.                      *
+ *Once virtual memory is implemented, I'll need to create some sort of vector-like*
+ *structure, and store allocated pages in there... funnily enough this also       *
+ *requires allocating pages, but to the kernel instead, so there's not much worry *
+ *there.                                                                          *
+ **********************************************************************************/
 
 int check_sorted(mmap_entry_t *mmap, int mmap_entries){
     for(int i = 1; i < mmap_entries-1; i++){
@@ -80,7 +87,7 @@ int check_free(int start, int size){
 }
 
 void *kmalloc(int size, char permissions){
-    //search map starting at 0x100000/4096
+    //search map starting at 0x100000/4096 + max_address/4096
     //while reserved or used, keep searching
     //check if there is enough room
     //  if no, continue searching from the end of the just-checked space
@@ -134,7 +141,7 @@ void *kfree(void *ptr){
     return 0;
 }
 
-int get_used_pages(){
+uint32_t get_used_pages(){
     int allocated_count = 0;
     for(int i = 0; i < page_table_size; i++){
         if(page_table[i].used && !(page_table[i].unusable || page_table[i].reserved)){
@@ -144,8 +151,11 @@ int get_used_pages(){
     // kprintf("Debug: There are currently %d pages allocated", allocated_count);
     return allocated_count;
 }
+uint32_t get_free_pages(){
+    return page_table_size - get_used_pages(); 
+}
 
-void *kumalloc(int size_pgs, char perms, uint8_t pid){
+void *kumalloc(int size_pgs, char perms, uint32_t pid){
     int start = 0;
     for(int i = 0x100000/4096; i < page_table_size; i++){
         if((page_table[i].used == 0) && !page_table[i].unusable && check_free(i, size_pgs)){
@@ -166,10 +176,23 @@ void *kumalloc(int size_pgs, char perms, uint8_t pid){
                 page_table[i+j] = ent;
                 
             }
+            
             return (void *)(long)addr;
         }
     }
     return 0;
+}
+
+void kfree_pid(uint32_t pid, uint32_t num_allocated){
+    for(int i = 0x100000/4096; i < page_table_size; i++){
+        if(page_table[i].pid == pid){
+            kfree((void *)(long long)(i * 4096));
+            --num_allocated;
+        }
+        if(num_allocated == 0){
+            return;
+        }
+    }
 }
 
 /*typedef struct page_entry{

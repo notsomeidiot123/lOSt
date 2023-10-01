@@ -10,4 +10,4 @@ extern void ps2_handler(irq_registers_t *regs);
 extern char getchar();
 
 extern unsigned char get_lastkey();
-extern void register_handler(kb_handler translated_handler);
+extern void register_handlers(kb_handler translated_handler);

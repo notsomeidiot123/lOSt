@@ -2,7 +2,7 @@
 
 kb_handler g_listener = 0;
 
-void ps2_kb_listener(uint8_t key){
+void kb_listener(uint8_t key){
     if(!g_listener){
         return;
     }
@@ -22,6 +22,6 @@ int register_kb_listener(void (*listener)(uint8_t)){
 }
 void request_register_driver(void (*driver_listener)(kb_handler)){
     if(driver_listener){
-        driver_listener(ps2_kb_listener);
+        driver_listener(kb_listener);
     }
 }

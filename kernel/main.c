@@ -16,7 +16,7 @@
 
 char catstr[60];
 
-#define MAX_KERNEL_SIZE 0x80 * 512
+#define MAX_KERNEL_SIZE 0x400 * 512
 
 extern void start;
 extern void end;
@@ -58,7 +58,7 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
         disp_str(40, 0, "lOSt Developer Warning: HEY! THE KERNEL'S TOO LARGE, LOOK AT THE MONITOR!");
         while(1);
     }
-    kprintf("Finished Booting\n");
+    kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
     if(lostrc == 0){

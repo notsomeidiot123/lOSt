@@ -236,6 +236,15 @@ part2_start:
     mov si, DAP
     mov dl, [boot_disk]
     int 0x13
+    ;I'll just wait until i start seeing issues in my code to update this, i don't want to copy/paste this like 100 times
+    mov word [DAP.segemnt], 0x2000
+    mov word [DAP.offset], 0
+    add dword [DAP.start], 0x80
+    mov byte [DAP.sectors], 0x80
+    mov ah, 0x42
+    mov si, DAP
+    mov dl, [boot_disk]
+    int 0x13
 
     ;set video mode to 80x25
     ; 

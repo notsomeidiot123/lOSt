@@ -128,6 +128,26 @@ void exec_command(char *command){
             kfree(string);
         }
     }
+    else if(!kstrcmp(command, "meminfo")){
+        uint32_t used_pages = get_used_pages();
+        uint32_t used_mem = used_pages * PG_SZ;
+        uint32_t free_pages = get_free_pages();
+        uint32_t free_mem = free_pages * PG_SZ;
+        kprintf("Used Pages: %d, Free Pages: %d\nUsed Memory (Bytes): %d, Free Memory (Bytes): %d\nTotal Memory (Pages) %d, Total Memory (Bytes): %d\n",
+            used_pages,
+            free_pages,
+            used_mem,
+            free_mem,
+            free_pages + used_pages,
+            used_mem + free_mem
+        );
+        //not a word... i was feeling lazy
+        char sz_str_free = free_mem < 1024 ? 'B' : (free_mem < 1024*1024 ? 'K' : (free_mem < 1024*1024*1024 ? 'M' : 'G'));
+        char sz_str_used = used_mem < 1024 ? 'B' : (used_mem < 1024*1024 ? 'K' : (used_mem < 1024*1024*1024 ? 'M' : 'G'));
+        char sz_used = used_mem < 1024 ? used_mem : (used_mem < 1024*1024 ? used_mem/1024 : (used_mem < 1024*1024*1024 ? used_mem/1024/1024 : used_mem/1024/1024/1024));
+        char sz_free = free_mem < 1024 ? free_mem : (free_mem < 1024*1024 ? free_mem/1024 : (free_mem < 1024*1024*1024 ? free_mem/1024/1024 : free_mem/1024/1024/1024));
+        kprintf("(%d%cb/%d%cb)\n", sz_used, sz_str_used, sz_free, sz_str_free);
+    }
     else if(!kstrcmp(command, "cd ../")){
         int last = 0;
         int i = 1;
@@ -152,14 +172,9 @@ void exec_command(char *command){
         }
     }
     else if(!kstrcmp(command, "osinfo")){
-        write_screen("Kernel: ");
-        write_screen(OS_VERSION);
-        write_screen("\n");
-        write_screen("Shell: ");
-        write_screen(SHELL_VERSION);
-        write_screen("\n");
+        kprintf("Kernel: %s\nShell: %s\n", OS_VERSION, SHELL_VERSION);
     }
-    else if(!kstrcmp(command, "login")){
+    else if(!kstrcmp(command, "test")){
         write_screen("WIP\n");
     }
     else{
@@ -171,7 +186,8 @@ void exec_command(char *command){
 
 void getch(char c){
     if(current_command != 0){
-        write_screen_char(c);
+        // write_screen_char(c);
+        kprintf("%c", c);
         if(c == '\n'){
             // write_screen_char(c);
             exec_command(current_command);
@@ -212,7 +228,8 @@ void eshell(){
     eshell_settings.current_directory = kmalloc(1, 6);
     kmemcpy((void *)"A:",(void *) eshell_settings.current_directory, 4);
     current_command = kmalloc(1, 6);
-    eshell_settings.driver_key = register_serial_listener((void*)getch, 0, 0);
+    eshell_settings.driver_key = register_serial_listener((void*)write_screen_char, 0, 0);
+    register_kb_listener((kb_handler)getch);
     write_screen("\r[ DONE ]\n");
     write_screen("Use the command \'help\' to see builtin commands!\n");
     write_screen(eshell_settings.current_directory);

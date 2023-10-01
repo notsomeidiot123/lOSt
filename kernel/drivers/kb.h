@@ -33,6 +33,6 @@ enum ControlChars{
     SCRLK
 };
 
-extern void ps2_kb_listener(uint8_t key);
+extern void kb_listener(uint8_t key);
 extern int register_kb_listener(void (*listener)(uint8_t keychar));
 extern void request_register_driver(void (*driver_listener)(kb_handler));

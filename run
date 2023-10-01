@@ -8,4 +8,5 @@ qemu-system-i386 bin/lOSt.bin\
     -m 32M\
     -smp 2\
     -serial mon:stdio
+    # -d int
     # -d trace:*ide*

@@ -12,7 +12,7 @@ CFLAGS="-g -c -m32 -ffreestanding -fno-pie -mno-sse -O0 -Wno-int-to-pointer-cast
 cd kernel/
 gcc main.c $CFLAGS obj/main.o
 for d in ./*/; do
-    if [ "$d" != "./obj/" ] && [ "$d" != "./libs/" ]; then
+    if [ "$d" != "./obj/" ]; then
         echo -e "\033[1;32mCompiling files in $d\033[0m"
         for f in $d*.c; do
             echo -e "\033[1;36mfile: $f\033[0m"

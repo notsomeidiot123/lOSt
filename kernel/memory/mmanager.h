@@ -26,6 +26,8 @@ typedef struct page_entry{
 #define MEMORY_PERM_WRTE 0x2
 #define MEMORY_PERM_EXEC 0x1
 
+#define PG_SZ 4096
+
 enum BDA_VIDEO_MODE{
     BDA_VM_EGA,
     BDA_VM_c40x25,
@@ -180,7 +182,10 @@ typedef struct BDA_S{
 
 extern void init_memory(mmap_entry_t *mmap, int mmap_entries);
 extern void *kmalloc(int size, char permissions);
+extern void *kumalloc(int size_pgs, char perms, uint32_t pid);
 extern void *kfree(void *ptr);
-extern int get_used_pages();
+void kfree_pid(uint32_t pid, uint32_t num_allocated);
+extern uint32_t get_used_pages();
+extern uint32_t get_free_pages();
 extern int get_ram_size();
 extern bda_t *bda;

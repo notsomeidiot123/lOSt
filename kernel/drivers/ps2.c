@@ -67,7 +67,7 @@ int init_8042(){
         outb(KB_COMMAND, 0xA8);
     }
     outb(KB_COMMAND, 0xAE);
-    request_register_driver(register_handler);
+    request_register_driver(register_handlers);
     return 0;
 }
 
@@ -148,11 +148,11 @@ char get_ascii(char scanned, char shift, char numlock){
 
 char shift_down = 0;
 char caps_lock = 0;
-void (*kb_listener_translated)(uint8_t c) = 0;
-void (*kb_listener_untranslated)(uint8_t c) = 0;
+void (*ps2_listener)(uint8_t c) = 0;
 
-void register_handlers(kb_handler translated_handler, kb_handler untranslated_handler){
-
+void register_handlers(kb_handler translated_handler){
+    ps2_listener = translated_handler;
+    return;
 }
 
 void ps2_handler(irq_registers_t *regs){
@@ -177,12 +177,8 @@ void ps2_handler(irq_registers_t *regs){
         ps_2_interrupt_fired = 1;
         last_key = scancode;
         last_char = get_ascii(translated_kb_codes[scancode], shift_down | caps_lock, 0);
-        kprintf("%c", last_char);
-        if(kb_listener_translated){
-            kb_listener_translated(last_char);
-        }
-        if(kb_listener_untranslated){
-            kb_listener_untranslated(last_key);
+        if(ps2_listener){
+            kb_listener(last_char);
         }
     }
     else{
