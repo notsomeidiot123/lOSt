@@ -91,7 +91,6 @@ extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int dri
 extern drive32_t *get_drive(int drive);
 extern filesystem32_t *get_fs(int fs);
 extern int register_fs(filesystem32_t *fs);
-
 //WARNING: FOPEN ALLOCATES MEMORY
 extern FILE *fopen(char *name, int mode);
 extern int fwrite(FILE* file, uint8_t *buffer, uint32_t size);

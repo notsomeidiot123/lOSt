@@ -10,6 +10,8 @@
 #include "../cpu/io.h"
 #include "../drivers/ps2.h"
 #include "../libs/defs.h"
+#include "../proc/scheduler.h"
+
 #include <stdint.h>
 
 char *current_command;
@@ -22,6 +24,7 @@ struct{
     char *current_directory;
     uint8_t exit;
     uint32_t driver_key;
+    char *exe_path;
     struct user{
         struct uinfo{
             uint8_t valid :1;
@@ -35,6 +38,8 @@ struct{
         char username[32];
     }users[32];
     uint8_t current_user;
+    uint8_t proc_running;
+    proc_list_t *proc;
 }eshell_settings = {0};
 uint8_t lock_last_line = 0;
 
@@ -142,11 +147,11 @@ void exec_command(char *command){
             used_mem + free_mem
         );
         //not a word... i was feeling lazy
-        char sz_str_free = free_mem < 1024 ? 'B' : (free_mem < 1024*1024 ? 'K' : (free_mem < 1024*1024*1024 ? 'M' : 'G'));
+        char sz_str_total = (free_mem + used_mem) < 1024 ? 'B' : ((free_mem + used_mem) < 1024*1024 ? 'K' : ((free_mem + used_mem) < 1024*1024*1024 ? 'M' : 'G'));
         char sz_str_used = used_mem < 1024 ? 'B' : (used_mem < 1024*1024 ? 'K' : (used_mem < 1024*1024*1024 ? 'M' : 'G'));
         char sz_used = used_mem < 1024 ? used_mem : (used_mem < 1024*1024 ? used_mem/1024 : (used_mem < 1024*1024*1024 ? used_mem/1024/1024 : used_mem/1024/1024/1024));
-        char sz_free = free_mem < 1024 ? free_mem : (free_mem < 1024*1024 ? free_mem/1024 : (free_mem < 1024*1024*1024 ? free_mem/1024/1024 : free_mem/1024/1024/1024));
-        kprintf("(%d%cb/%d%cb)\n", sz_used, sz_str_used, sz_free, sz_str_free);
+        char sz_total = (free_mem + used_mem )< 1024 ? (free_mem + used_mem) : ((free_mem + used_mem) < 1024*1024 ? (free_mem + used_mem)/1024 : ((free_mem + used_mem) < 1024*1024*1024 ? (free_mem + used_mem)/1024/1024 : (free_mem + used_mem)/1024/1024/1024));
+        kprintf("(%d%cb/%d%cb)\n", sz_used, sz_str_used, sz_total, sz_str_total);
     }
     else if(!kstrcmp(command, "cd ../")){
         int last = 0;
@@ -185,6 +190,16 @@ void exec_command(char *command){
 }
 
 void getch(char c){
+    if(eshell_settings.proc_running){
+        if(!eshell_settings.proc->process->stdin){
+            return;
+        }
+        else{
+            char *stdin = eshell_settings.proc->process->stdin;
+            kstrcat(stdin, stdin, (char[]){c, 0});
+            return;
+        }
+    }
     if(current_command != 0){
         // write_screen_char(c);
         kprintf("%c", c);

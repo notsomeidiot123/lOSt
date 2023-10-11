@@ -12,14 +12,16 @@ enable_int:
 disable_int:
     cli
     ret
-
 extern loaded_code_segment
 extern loaded_data_segment
 
 load_cs:
-	push word [loaded_code_segment]
-	push dword [ebp + 4]
+	; push word [loaded_code_segment]
+	; push dword [ebp + 4]
+	
 	; jmp $
+	; jmp [loaded_code_segment]:.load
+	.load:
 	retf
 load_ds:
 

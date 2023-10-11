@@ -1,15 +1,16 @@
 #include "../cpu/io.h"
 #include "../cpu/idt.h"
-
+#include "../proc/scheduler.h"
 
 unsigned int seconds;
 unsigned int ticks;
 
-void irq0_timer_handler(){
+void irq0_timer_handler(irq_registers_t *registers){
     ticks++;
     if(ticks % 18 == 0){
         seconds++;
     }
+    schedule(registers);
 }
 
 int wait_secs(int count){

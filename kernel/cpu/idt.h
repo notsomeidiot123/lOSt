@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 extern void load_idt();
 extern void enable_int();
 extern void disable_int();
@@ -55,3 +56,4 @@ typedef struct
 extern void init_idt();
 
 void pic_remask();
+uint32_t get_eflags();

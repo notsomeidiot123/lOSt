@@ -78,6 +78,7 @@ void kstrcat( char *dest, char* first, char *second){
     while(*second){
         dest[pos++] = *(second++);
     }
+    dest[kstrlen(dest)] = 0;
 }
 /*
 

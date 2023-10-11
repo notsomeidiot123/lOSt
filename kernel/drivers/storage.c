@@ -220,6 +220,10 @@ FILE *fopen(char *name, int mode){
     return 0;
 }
 
-int fwrite(FILE* file, uint8_t *buffer, uint32_t size);
+int fwrite(FILE* file, uint8_t *buffer, uint32_t size){
+    
+};
 
-void fread(FILE* f, uint8_t* buffer, uint32_t size);
+void fread(FILE* f, uint8_t* buffer, uint32_t size){
+    
+}

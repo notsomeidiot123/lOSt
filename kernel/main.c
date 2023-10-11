@@ -13,6 +13,7 @@
 #include "drivers/ata.h"
 #include "cpu/ksec.h"
 #include "eshell/eshell.h"
+#include "proc/scheduler.h"
 
 char catstr[60];
 
@@ -22,6 +23,11 @@ extern void start;
 extern void end;
 
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
+    init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
+    kprintf("Registering MMAP:\n");
+    kstrcat(catstr, "RAM: ", ltostr(get_ram_size()/1024/1024, 10, 0));
+    kstrcat(catstr, catstr, "Mb");
+    disp_str(40, 12, catstr);
     textmode_print_load();
     set_color(0x7);
     char serial_res = serial_init();
@@ -38,11 +44,6 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     irq_install_handler(ps2_handler, 1);
     kprintf("\r[ DONE ]\n"); 
     pic_remask();
-    kprintf("Registering MMAP:\n");
-    init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
-    kstrcat(catstr, "RAM: ", ltostr(get_ram_size()/1024/1024, 10, 0));
-    kstrcat(catstr, catstr, "Mb");
-    disp_str(40, 12, catstr);
     // kprintf("Starting FDC:\n");
     // init_floppy();
     // kprintf("Floppy Disc Controller Initialization Finished\n");
@@ -64,7 +65,8 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     if(lostrc == 0){
         disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
         disp_str(40, 15, "Booting into emergency shell!");
-        eshell();
+        // eshell();        
+        kfork(eshell, 0, 0);
     }    
 };
 

@@ -1,3 +1,4 @@
+#pragma once
 #include <stdint.h>
 typedef struct cpuid_info_s{
     uint32_t vendor_string[3];

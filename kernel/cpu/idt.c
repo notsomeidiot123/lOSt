@@ -4,6 +4,22 @@
 #include "../graphics/vga.h"
 #include "../drivers/serial.h"
 #include "../drivers/ps2.h"
+#include "../memory/mmanager.h"
+#include "../memory/string.h"
+// #include "../filesystems/fat.h"
+#include "../drivers/storage.h"
+#include "../proc/scheduler.h"
+
+uint32_t get_eflags(){
+    uint32_t ret = 0;
+    asm("pushfl;"\
+    "popl %%eax;"\
+    "movl %%eax, %0"\
+    : "=m" (ret)
+    );
+    return ret;
+}
+
 
 extern void irq0();
 extern void irq1();
@@ -101,6 +117,7 @@ short loaded_data_segment = 0x10;
 
 void load_code_segment(short segment){
     loaded_code_segment = segment;
+    load_cs();
 }
 
 
@@ -204,38 +221,89 @@ void irq_remap(){
     outb(0xa1, 0);
 }
 
-/*
-INT TABLE FOR f0und (most syscalls based on linux)
-eax=1,
-exits process with error code ebx
-eax=2,
-forks current process, if non is active, starts a new process
-eax=3,
-puts ecx amount of characters from string edx to file descriptor ebx
-eax=4,
-reads ecx amount of characters from file descriptor ebx and stores at pointer edx
-
-
-
-*/
-
 //i would never do thing normally but im using the int to long typecasts to get rid of the warnings because
 //THE STUPID THING DOESNT UNDERSTAND WHAT IM TRYING TO CODE >:( I DONT WANT WARNINGS HIGHLIGHTED, JUST ERRORS >:(((
 
-void software_int(irq_registers_t* regs){
+/*
+TODO: Change IO operations to start using the job queue
+*/
+void native_irq(irq_registers_t *regs){
     switch(regs->eax){
+        case 0:
+        //sys_exit
+            exit_proc(regs->ebx, get_pid());
+            break;
+        case 1:
+        //sys_fopen()
+            regs->eax = (uint32_t)(long)fopen((void *)(long)regs->ebx, regs->ecx);
+            break;
+        case 2:
+        //sys_read
+        //returns regs->edx amount of characters.
+        //is null terminated
+        //returns amount of chars actually read in edx
+            if(regs->ebx == 0){
+                proc_list_t *proc = get_proc(get_pid());
+                uint32_t stdinlen = kstrlen(proc->process->stdin);
+                regs->edx = stdinlen * (stdinlen < regs->edx) + regs->edx * (stdinlen >= regs->edx);
+                if(regs->ecx < 0x80000){
+                    exit_proc(-1, get_pid());
+                }
+                kmemcpy(proc->process->stdin, (void *)(long)proc->process->regs.ecx, regs->edx);
+                kmemcpy(proc->process->stdin + regs->edx, proc->process->stdin, kstrlen(proc->process->stdin) - regs->edx);
+                proc->process->stdin[kstrlen(proc->process->stdin)] = 0;
+            }
+            else{
+                fread((FILE *)(long)regs->ebx, (uint8_t *)(long)regs->ecx, regs->edx);
+            }
+            break;
         case 3:
-            for(int i = 0; i < regs->ecx; i++){
-                while(!ps_2_interrupt_fired);
-                *(char *)((long)regs->edx + i) = getchar();
+        //sys_write
+            if(regs->ebx == 0){
+                proc_list_t *proc = get_proc(get_pid());
+                kstrcat(proc->process->stdout, proc->process->stdout, (char *)(long)regs->ecx);
             }
+            else {
+                fwrite((FILE *)(long)regs->ebx, (uint8_t *)(long)regs->ecx, regs->edx);
+            }
+            break;
         case 4:
-            for(int i = 0; i < regs->ecx; i++){
-                kputc(*(char *)((long)regs->edx + i));
-            }
-        break;
-        default:
-        break;
+        //sys_close
+            //TODO: Implement closing function, + locks, mutexes etc
+            kfree((void *)(long)regs->ebx);
+            break;
+        case 5:
+        //sys_fork
+            break;
+        case 6:
+        //sys_exec
+            
+            break;
+        case 7:
+        //sys_get_pid
+            regs->eax = get_pid();
+            break;
+        case 8:
+        //sys_get_proc
+        //yes im aware of the security implications...
+            regs->eax = (uint32_t)(long)get_proc(regs->ebx);
+            break;
+        case 9:
+        //sys_malloc
+            regs->eax = (uint32_t)(long)kumalloc(regs->ebx/4096 + 1, 6, get_pid());
+            break;
+        case 10:
+        //sys_free
+            kfree((void *)(long)regs->ebx);
+            break;
+        
+    }
+}
+
+void software_int(irq_registers_t* regs){
+    uint16_t pid = get_pid();
+    if(get_proc(pid)->process->abi == 0){
+        native_irq(regs);
     }
 }
 
@@ -263,6 +331,7 @@ extern void _irq_handler(irq_registers_t *regs){
     if(regs-> int_no < 0x30){
         outb(0x20, 0x20);
     }
+    schedule(regs);
 }
 pic_mask_master_t master_pic_mask;
 pic_mask_slave_t slave_pic_mask;
