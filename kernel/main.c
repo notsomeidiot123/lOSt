@@ -22,6 +22,9 @@ char catstr[60];
 extern void start;
 extern void end;
 
+void idle(){
+    for(;;);
+}
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
     kprintf("Registering MMAP:\n");
@@ -59,15 +62,20 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
         disp_str(40, 0, "lOSt Developer Warning: HEY! THE KERNEL'S TOO LARGE, LOOK AT THE MONITOR!");
         while(1);
     }
+    kprintf("[      ] Initializing Scheduler");
+    init_scheduler();
+    kprintf("\r[ DONE ]\n");
     kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
     if(lostrc == 0){
         disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
         disp_str(40, 15, "Booting into emergency shell!");
-        // eshell();        
+        // eshell();
         kfork(eshell, 0, 0);
-    }    
+        
+    }
+    kfork(idle, 0, 0);
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

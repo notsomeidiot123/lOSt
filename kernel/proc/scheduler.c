@@ -11,7 +11,8 @@
 uint16_t cpid = 0;//current scheduled pid
 uint16_t lapid= 0;//last assigned pid
 uint32_t active_procs = 0;
-proc_list_t **proc_list;
+proc_list_t **proc_list = 0;
+uint8_t enable_scheduler = 0;
 
 uint32_t get_pid(){
     return cpid;
@@ -101,6 +102,7 @@ void exit_v(){
     kfree(get_proc(pid));
     proc_list[pid] = 0;
     active_procs--;
+    for(;;);
 }
 
 uint32_t exec(uint32_t *buffer, uint32_t buffer_size, uint16_t pid, char *argv[]){
@@ -139,7 +141,16 @@ uint32_t exec(uint32_t *buffer, uint32_t buffer_size, uint16_t pid, char *argv[]
 void init_scheduler(){
     //honestly, what else has to be done here?
     proc_list = kmalloc((sizeof(proc_list_t *) * 65536 )/ 4096, 6);
+    if(proc_list == 0){
+        kprintf("[lOSt]: Error initializing scheduler!\n");
+        for(;;);
+    }
+    for(int i = 0; i < 65536; i++){
+        proc_list[i] = 0;
+    }
     proc_list[0] = (void*)-1;
+    kprintf("proc_list: %x", proc_list);
+    enable_scheduler = 1;
     return;
 }
 
@@ -150,17 +161,17 @@ void p_push(uint32_t value, proc_list_t *proc){
 }
 
 void kfork(void (*function)(), uint32_t args[], uint32_t count){
-    active_procs++;
     // function();
     proc_list_t *proc_l = kmalloc(1, 6);
     process32_t *proc = kmalloc(1, 6);
+    uint16_t pid = register_process(0, proc);
     proc_l->process = proc;
     
     proc->abi = 0;
     proc->allocated_pages = -1;
     proc->lock = 0;
     proc->priority = 4;
-    proc->stack_base = (uint32_t)(long)kmalloc(1, 6);
+    proc->stack_base = (uint32_t)(long)kumalloc(1, 6, pid);
     proc->regs.eip = (uint32_t)(long)function;
     proc->stack_limit = proc->stack_base + 4096;
     proc->regs.esp = (uint32_t)proc->stack_limit;
@@ -174,22 +185,27 @@ void kfork(void (*function)(), uint32_t args[], uint32_t count){
     for(int i = 0; i < count && args; i++){
         p_push(args[i], proc_l);
     }
+    //fix... whatever this is
     p_push((uint32_t)(long)exit_v, proc_l);
     p_push(proc->regs.ebp, proc_l);
+    
+    
     proc->regs.ebp = proc->regs.esp;
-    register_process(0, proc);
+    
     kfree(proc_l);
+    active_procs++;
     return;
 }
 
 //TODO: Upgrade to support SMP
+//DON'T TOUCH IT, IT FINALLY WORKS
 void schedule(irq_registers_t *oldregs){
-    if(active_procs == 0){
+    if(active_procs == 0 || enable_scheduler == 0){
         return;
     }
     proc_list[cpid]->process->regs = *oldregs;
     cpid++;
-    while(!proc_list[cpid] && !proc_list[cpid]->process->lock){
+    while(!proc_list[cpid] || (!proc_list[cpid] && !proc_list[cpid]->process->lock)){
         cpid++;
     }
     if(cpid == 0){
@@ -198,6 +214,9 @@ void schedule(irq_registers_t *oldregs){
         schedule(oldregs);
         return;
     }
+    else {
+        // kprintf("Found Proc! PID: %d, EIP:%x\n", cpid, proc_list[cpid]->process->regs.eip);
+    }
     *oldregs = proc_list[cpid]->process->regs;
-    kprintf("DS:%x", oldregs->ds);
+    // kprintf("DS:%x", oldregs->ds);
 }

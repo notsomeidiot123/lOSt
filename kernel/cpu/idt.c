@@ -20,6 +20,8 @@ uint32_t get_eflags(){
     return ret;
 }
 
+uint8_t kernel_mode = 1;
+
 
 extern void irq0();
 extern void irq1();
@@ -121,8 +123,7 @@ void load_code_segment(short segment){
 }
 
 
-
-extern void _fhandler(irq_registers_t *regs, ...){
+extern void panic(irq_registers_t *regs, ...){
     char *exceptions[] = {
         "Divide by 0",
         "Reserved",
@@ -178,7 +179,7 @@ extern void _fhandler(irq_registers_t *regs, ...){
     };
     set_color(0x1f);
     clear_screen();
-    kprintf("f0und: Kernel panic!\nMessage: I'm sorry, your computer ran into an exception while running. Please   be patient while we attempt to fetch information about what went wrong.\n");
+    kprintf("f0und: Kernel panic!\nMessage: I'm sorry, your computer ran into an exception while running. Please be patient while we attempt to fetch information about what went wrong.\n");
     kprintf("Exception: %s Exception!\n", exceptions[regs->int_no & 0xff]);
     padding = 8;
     kprintf("Occured at:    %x\n", regs->eip);
@@ -188,6 +189,18 @@ extern void _fhandler(irq_registers_t *regs, ...){
     kprintf("When you are ready, please restart your computer to continue. Any data from before the exception unfortuantely may be lost.\n");
     kprintf("f0und: End Kernel Panic! Result: Critical Exception. Restart.\nCode: %x%x\n", regs->int_no, regs->err_code);
     for(;;);
+}
+
+
+extern void _fhandler(irq_registers_t *regs, ...){
+    kernel_mode = 1;
+    if( active_procs <= 2){
+        panic(regs);
+    }
+    kprintf("Segmentation Fault (PID: %x)\n", get_pid());
+    exit_proc(-1, get_pid());
+    schedule(regs);
+    kernel_mode = 0;
 }
 
 idt_descriptor idt_desc;
@@ -309,6 +322,9 @@ void software_int(irq_registers_t* regs){
 
 
 extern void _irq_handler(irq_registers_t *regs){
+    kernel_mode = 1;
+    // kprintf("EAX: %x EBX: %x ECX: %x EDX: %x \nEBP: %x ESP: %x TOP OF STACK: %x\nEIP: %x DS: %x CS: %x SS:%x",
+    // regs->eax, regs->ebx, regs->ecx, regs->edx, regs->ebp, regs->esp, *((uint32_t *)(long)regs->esp), regs->eip, regs->ds, regs->cs, regs->ss);
     void (*handler)(irq_registers_t *r);
     if((unsigned char) regs->int_no == 0x80){
         software_int(regs);
@@ -332,6 +348,9 @@ extern void _irq_handler(irq_registers_t *regs){
         outb(0x20, 0x20);
     }
     schedule(regs);
+    kernel_mode = 0;
+    // kprintf("\nEAX: %x EBX: %x ECX: %x EDX: %x \nEBP: %x ESP: %x TOP OF STACK: %x\nEIP: %x DS: %x CS: %x SS:%x\nEFLAGS: %x\n",
+    // regs->eax, regs->ebx, regs->ecx, regs->edx, regs->ebp, regs->esp, *((uint32_t *)(long)regs->esp), regs->eip, regs->ds, regs->cs, regs->ss, regs->eflags);
 }
 pic_mask_master_t master_pic_mask;
 pic_mask_slave_t slave_pic_mask;
