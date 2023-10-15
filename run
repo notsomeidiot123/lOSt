@@ -5,7 +5,7 @@ qemu-system-i386 bin/lOSt.bin\
     -no-reboot\
     -no-shutdown\
     -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
-    -m 32M\
+    -m 512M\
     -smp 2\
     -serial mon:stdio
     # -d int

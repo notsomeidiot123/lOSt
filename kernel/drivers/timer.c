@@ -11,6 +11,7 @@ void irq0_timer_handler(irq_registers_t *registers){
         seconds++;
         // schedule(registers);   
     }
+    schedule(registers);
     
 }
 

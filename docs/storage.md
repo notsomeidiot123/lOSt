@@ -24,4 +24,19 @@ Adding a new driver is almost as simple as changing out drivers
 
 ## Warnings
 
-As of 
+Currently planning on replacing the VFS layer sometime after 1.0.0 launch from the DOS style drive lettering to a linux style mount point. This WILL break compatibility with almost all software that uses absolute addressing. To help minimize issues, I'll at least temporarily support BOTH indexed drive accessing and mount points.
+
+```c
+// I plan to allow something like this, either accessing the filesystem through the mountpoint OR through the index
+//Index:
+fread(fopen("A:/Directory/File.txt", "w+"), malloc(512), 512);
+//on the actual driver layer, this file path will be translated to 
+// /Directory/File.txt
+//Now, let's say we have a second drive mounted at /mnt/b and we try to access a file in a directory inside of there
+//we could access it with
+fread(fopen("B:/Directory/File.txt", "w+"), malloc(512), 512);
+//which will translate to /mnt/b/Directory/File.txt
+//OR we can access it as
+fread(fopen("/mnt/b/Directory/File.txt", "w+"), malloc(512), 512);
+//And both will access the same file
+```

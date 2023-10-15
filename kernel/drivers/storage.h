@@ -82,6 +82,7 @@ typedef struct file_s{
     uint8_t mode;
     uint8_t fs_type;
     uint32_t position;
+    uint8_t filesystem_id;
 }FILE;
 
 extern int register_drive(drive32_t *drive_to_register);

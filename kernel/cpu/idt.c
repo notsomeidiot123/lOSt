@@ -193,11 +193,45 @@ extern void panic(irq_registers_t *regs, ...){
 
 
 extern void _fhandler(irq_registers_t *regs, ...){
+    char *exceptions[] = {
+        "Divide by 0",
+        "Reserved",
+        "NMI Interrupt",
+        "Breakpoint",
+        "Overflow",
+        "Bounds range exceeded",
+        "Invalid Opcode",
+        "Device not Available",
+        "Double Fault",
+        "Coprocessor Segment Overrun",
+        "Invalid TSS",
+        "Segment not Present",
+        "Stack-segment",
+        "General Protection",
+        "Page Fault",
+        "Reserved",
+        "x87 FPU error",
+        "Alignment Check",
+        "Machine Check",
+        "SIMD FP",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Reserved",
+        "Software Panic!",
+    };
     kernel_mode = 1;
     if( active_procs <= 2){
         panic(regs);
     }
-    kprintf("Segmentation Fault (PID: %x)\n", get_pid());
+    kprintf("%s (PID: %x)\n",exceptions[regs->int_no], get_pid());
     exit_proc(-1, get_pid());
     schedule(regs);
     kernel_mode = 0;
@@ -248,7 +282,15 @@ void native_irq(irq_registers_t *regs){
             break;
         case 1:
         //sys_fopen()
-            regs->eax = (uint32_t)(long)fopen((void *)(long)regs->ebx, regs->ecx);
+        //TODO: update to work with new VFS layer with mount points instead of indexes
+            if(((char *)(long)(regs->ebx))[1] == ':' && ((char *)(long)(regs->ebx))[2] == '/'){
+                regs->eax = (uint32_t)(long)fopen((void *)(long)regs->ebx, regs->ecx);
+            }
+            else{
+                char *str = (void *)(long)regs->ebx;
+                kstrcat(str, get_proc(get_pid())->path_to_exec, str);
+                regs->eax = (uint32_t)(long)fopen(str, regs->ecx);
+            }
             break;
         case 2:
         //sys_read
@@ -287,9 +329,14 @@ void native_irq(irq_registers_t *regs){
             break;
         case 5:
         //sys_fork
+            fork(get_proc(get_pid()));
             break;
         case 6:
         //sys_exec
+            // if(!load_exe){
+                // regs->eax = -1;
+            // }
+            // if(load_exe((FILE *)(long)regs->ebx, regs->ecx, (void *)(long)regs->edx)) regs->eax = -1;
             
             break;
         case 7:
@@ -329,6 +376,8 @@ extern void _irq_handler(irq_registers_t *regs){
     if((unsigned char) regs->int_no == 0x80){
         software_int(regs);
         // kprintf("int test");
+        schedule(regs);
+        kernel_mode = 0;
         return;
     }
     handler = (void (*)(irq_registers_t*))_irq_handlers[(unsigned char)regs->int_no];
@@ -347,7 +396,7 @@ extern void _irq_handler(irq_registers_t *regs){
     if(regs-> int_no < 0x30){
         outb(0x20, 0x20);
     }
-    schedule(regs);
+    
     kernel_mode = 0;
     // kprintf("\nEAX: %x EBX: %x ECX: %x EDX: %x \nEBP: %x ESP: %x TOP OF STACK: %x\nEIP: %x DS: %x CS: %x SS:%x\nEFLAGS: %x\n",
     // regs->eax, regs->ebx, regs->ecx, regs->edx, regs->ebp, regs->esp, *((uint32_t *)(long)regs->esp), regs->eip, regs->ds, regs->cs, regs->ss, regs->eflags);

@@ -89,7 +89,7 @@ void write_screen_char(char c){
     }
     if(y >= 24){
         void *framebuffer = get_framebuffer();
-        kmemcpy(framebuffer + 160, framebuffer, 80*24 * 2);
+        kmemcpy(framebuffer + 160, framebuffer, 80*25 * 2);
         
         y = 23;
         x = 1;
@@ -179,8 +179,8 @@ void exec_command(char *command){
     else if(!kstrcmp(command, "osinfo")){
         kprintf("Kernel: %s\nShell: %s\n", OS_VERSION, SHELL_VERSION);
     }
-    else if(!kstrcmp(command, "test")){
-        write_screen("WIP\n");
+    else if(!kstrcmp(command, "help")){
+        write_screen("osinfo: Display information about the OS\nuser: Display username\nmeminfo: Show information about memory usage\ndisks: Show information about mounted disks\nclear: Clear the screen\nexit: Exit the shell enviornment\n");
     }
     else{
         write_screen("Command not found: ");
@@ -215,9 +215,8 @@ void getch(char c){
             if(last_command != 0) kfree(last_command);
             last_command = current_command;
             current_command = kmalloc(1, 6);
-            for(int i = 0; i < 4096; i++){
-                current_command[i] = 0;
-            }
+            kmemset((void *)current_command, 4096, 0);
+
             
         }
         else if(c < ' '){
@@ -243,12 +242,13 @@ void eshell(){
     eshell_settings.current_directory = kmalloc(1, 6);
     kmemcpy((void *)"A:",(void *) eshell_settings.current_directory, 4);
     current_command = kmalloc(1, 6);
-    eshell_settings.driver_key = register_serial_listener((void*)write_screen_char, 0, 0);
+    kmemset((void *)current_command, 4096, 0);
+    eshell_settings.driver_key = register_serial_listener((void*)write_screen_char, 0, get_pid());
     register_kb_listener((kb_handler)getch);
     write_screen("\r[ DONE ]\n");
     write_screen("Use the command \'help\' to see builtin commands!\n");
     write_screen(eshell_settings.current_directory);
-    write_screen(">");
+    write_screen("/>");
     minx = x;
     miny = y;
     while(!eshell_settings.exit){
@@ -262,4 +262,5 @@ void eshell(){
     toggle_auto_return();
 
     deregister_serial_listener(0, eshell_settings.driver_key);
+    exit_v();
 }

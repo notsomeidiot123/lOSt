@@ -6,7 +6,7 @@ unsigned int max_address = 0;
 unsigned int total_usable = 0;
 bda_t *bda = (bda_t *)0x400;
 
-page_entry_t *page_table = (page_entry_t*) 0x80000;
+page_entry_t *page_table = (page_entry_t*) 0x20000;
 unsigned int page_table_size;
 
 /**********************************************************************************
@@ -37,6 +37,12 @@ int get_ram_size(){
     return max_address;
 }
 
+void reserve(void *address, int pages, char permissions){
+    for(int i = ((long)address / 4096); i < pages; i++){
+        page_table[i] = (page_entry_t){1, 1, 0, 0, permissions & 0x4, permissions & 0x2, permissions & 0x1, 1};
+    }
+}
+
 void init_memory(mmap_entry_t *mmap, int mmap_entries){
     padding = 8;
     for(int i = 0; i < mmap_entries; i++){
@@ -53,13 +59,14 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
     padding = 0;
     int current_ent = 0;
     page_table_size = max_address/4096;
+    page_table = (page_entry_t *)0x100000;
     for(int i = 0; i < (max_address / 4096); i++){
         int last_entry_max_address = (current_ent != 0) * mmap[current_ent].length_low + mmap[current_ent].base_low;
         int entry_max_address = mmap[current_ent].length_low + mmap[current_ent].base_low;
         if(i * 4096 >= entry_max_address){
             current_ent++;
         }
-        if(i * 4096 < mmap[current_ent].base_low && i * 4096 > last_entry_max_address || i * 4096  < 0x00100000 || mmap[current_ent].region_type != 1){
+        if(i * 4096 < mmap[current_ent].base_low && i * 4096 > last_entry_max_address || i * 4096  < (0x00100000 + page_table_size * sizeof(page_entry_t)) || mmap[current_ent].region_type != 1){
             page_table[i] = (page_entry_t){1, 1, 0, 0, 0, 0, 0, 1};
             total_usable -= 4096;
         }
@@ -68,14 +75,10 @@ void init_memory(mmap_entry_t *mmap, int mmap_entries){
             page_table[i] = (page_entry_t){0, 0, 0, 0, 1, 1, 1, 0};
         }
     }
+    
     kprintf("Total Usable Memory  : %dMB/%dMB\n", total_usable/1024/1024, max_address/1024/1024);
 }
 
-void reserve(void *address, int pages, char permissions){
-    for(int i = ((long)address / 4096); i < pages; i++){
-        page_table[i] = (page_entry_t){1, 1, 0, 0, permissions & 0x4, permissions & 0x2, permissions & 0x1, 1};
-    }
-}
 
 int check_free(int start, int size){
     for(int i = start; i + start < start + size; i++){

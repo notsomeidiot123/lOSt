@@ -72,10 +72,10 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
         disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
         disp_str(40, 15, "Booting into emergency shell!");
         // eshell();
-        kfork(eshell, 0, 0);
-        
+        uint32_t shell_pid = kfork(eshell, 0, 0);
+        kprintf("forked\n Active Procs: %d, PID: %d\n", active_procs, shell_pid);
     }
-    kfork(idle, 0, 0);
+    // kfork(idle, 0, 0);
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

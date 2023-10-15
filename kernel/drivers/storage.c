@@ -221,9 +221,25 @@ FILE *fopen(char *name, int mode){
 }
 
 int fwrite(FILE* file, uint8_t *buffer, uint32_t size){
-    
-};
+    if(!file){
+        return 0;
+    }
+    switch(file->fs_type){
+        case FS_FAT32:
+            return fat32_write(file, size, (char *)buffer, (fs_fat_t *)filesystems[file->filesystem_id]);
+            break;
+    }
+    return 0;
+}
 
-void fread(FILE* f, uint8_t* buffer, uint32_t size){
-    
+void fread(FILE* file, uint8_t* buffer, uint32_t size){
+    if(!file){
+        return;
+    }
+    switch(file->fs_type){
+        case FS_FAT32:
+            fat32_read(file, size, (char *)buffer, (fs_fat_t *)filesystems[file->filesystem_id]);
+            break;
+    }
+    return ;
 }

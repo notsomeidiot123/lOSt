@@ -4,7 +4,8 @@
 #include "proc.h"
 #include "scheduler.h"
 #include "../cpu/idt.h"
-#define STK_SZ_PAGES 4096
+#include <stdint.h>
+#define STK_SZ_PAGES 1
 
 
 
@@ -13,6 +14,9 @@ uint16_t lapid= 0;//last assigned pid
 uint32_t active_procs = 0;
 proc_list_t **proc_list = 0;
 uint8_t enable_scheduler = 0;
+
+
+uint32_t (*load_exe)(FILE *file, uint32_t argc, char **argv);
 
 uint32_t get_pid(){
     return cpid;
@@ -149,7 +153,6 @@ void init_scheduler(){
         proc_list[i] = 0;
     }
     proc_list[0] = (void*)-1;
-    kprintf("proc_list: %x", proc_list);
     enable_scheduler = 1;
     return;
 }
@@ -160,7 +163,7 @@ void p_push(uint32_t value, proc_list_t *proc){
     proc->process->regs.esp = (uint32_t)(long)esp--;
 }
 
-void kfork(void (*function)(), uint32_t args[], uint32_t count){
+uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
     // function();
     proc_list_t *proc_l = kmalloc(1, 6);
     process32_t *proc = kmalloc(1, 6);
@@ -181,7 +184,6 @@ void kfork(void (*function)(), uint32_t args[], uint32_t count){
     proc->regs.ss = 0x10;
     proc->regs.es = 0x10;
     proc->regs.eflags = get_eflags();
-    kprintf("%x", proc->regs.ebp);
     for(int i = 0; i < count && args; i++){
         p_push(args[i], proc_l);
     }
@@ -194,7 +196,7 @@ void kfork(void (*function)(), uint32_t args[], uint32_t count){
     
     kfree(proc_l);
     active_procs++;
-    return;
+    return pid;
 }
 
 //TODO: Upgrade to support SMP
