@@ -25,6 +25,11 @@ extern void end;
 void idle(){
     for(;;);
 }
+void argtest(uint32_t test2, uint32_t test){
+    kprintf("Test: %x", &test);
+    for(;;);
+    exit_v();
+}
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
     kprintf("Registering MMAP:\n");

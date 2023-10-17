@@ -10,8 +10,9 @@ void irq0_timer_handler(irq_registers_t *registers){
     if(ticks % 18 == 0){
         seconds++;
         // schedule(registers);   
+        schedule(registers);
     }
-    schedule(registers);
+    // schedule(registers);
     
 }
 

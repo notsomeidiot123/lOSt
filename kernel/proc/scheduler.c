@@ -152,7 +152,7 @@ void init_scheduler(){
     for(int i = 0; i < 65536; i++){
         proc_list[i] = 0;
     }
-    proc_list[0] = (void*)-1;
+    // proc_list[0] = (void*)-1;
     enable_scheduler = 1;
     return;
 }
@@ -193,32 +193,29 @@ uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
     
     
     proc->regs.ebp = proc->regs.esp;
-    
+    kprintf("new ebp:%x\n", proc->regs.ebp);
     kfree(proc_l);
     active_procs++;
     return pid;
 }
-
+char first_run = 0;
 //TODO: Upgrade to support SMP
 //DON'T TOUCH IT, IT FINALLY WORKS
 void schedule(irq_registers_t *oldregs){
+    kprintf("cpid: %d", cpid);
     if(active_procs == 0 || enable_scheduler == 0){
         return;
     }
-    proc_list[cpid]->process->regs = *oldregs;
+    if(!first_run){
+        proc_list[cpid]->process->regs = *oldregs;
+        first_run = 1;
+        return;
+    }
+    kprintf("old ebp:%x\n", oldregs->esp);
     cpid++;
     while(!proc_list[cpid] || (!proc_list[cpid] && !proc_list[cpid]->process->lock)){
         cpid++;
     }
-    if(cpid == 0){
-        // execute_task_queue();
-        
-        schedule(oldregs);
-        return;
-    }
-    else {
-        // kprintf("Found Proc! PID: %d, EIP:%x\n", cpid, proc_list[cpid]->process->regs.eip);
-    }
     *oldregs = proc_list[cpid]->process->regs;
-    // kprintf("DS:%x", oldregs->ds);
+    // kprintf("ebp:%x\n", oldregs->esp);
 }
