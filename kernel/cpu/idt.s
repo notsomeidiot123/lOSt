@@ -106,6 +106,7 @@ _isr7:
 	jmp isr_common_stub
 _isr8:
 	cli
+	push byte 0
 	push byte 8
 	jmp isr_common_stub
 _isr9:
@@ -114,22 +115,27 @@ _isr9:
 	push byte 9
 	jmp isr_common_stub
 	cli
+	push byte 0
 	push byte 10
 	jmp isr_common_stub
 _isr11:
 	cli
+	push byte 0
 	push byte 11
 	jmp isr_common_stub
 _isr12:
 	cli
+	push byte 0
 	push byte 12
 	jmp isr_common_stub
 _isr13:
 	cli
+	push byte 0
 	push byte 13
 	jmp isr_common_stub
 _isr14:
 	cli
+	push byte 0
 	push byte 14
 	jmp isr_common_stub
 _isr15:
@@ -224,7 +230,7 @@ isr_common_stub:
     push gs
     push ds
     push es
-    mov ax, 0X10
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
@@ -365,6 +371,7 @@ irq_common_stub:
 	mov eax, _irq_handler
 	call eax
 	pop eax
+	mov esp, eax
 	pop gs
 	pop fs
 	pop es

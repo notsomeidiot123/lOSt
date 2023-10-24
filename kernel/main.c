@@ -22,11 +22,16 @@ char catstr[60];
 extern void start;
 extern void end;
 
+//IDLE process must exist for scheduling to work properly?
+//idk it's weird
+
 void idle(){
     for(;;);
 }
 void argtest(uint32_t test2, uint32_t test){
-    kprintf("Test: %x", &test);
+    int testv = 0;
+    kprintf("ARG1: %x, ARG2: %x, DIFF: %x\nVAR: %x, EBP: %x, ESP: %x", &test2, &test, &test - &test2, &testv, get_proc(get_pid())->process->regs.ebp, get_proc(get_pid())->process->regs.ebp);
+    kprintf("\nVARG1: %x, VARG2: %x\n", test2, test);
     for(;;);
     exit_v();
 }
@@ -77,7 +82,10 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
         disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
         disp_str(40, 15, "Booting into emergency shell!");
         // eshell();
+        kprintf("PTR: %x", eshell);
         uint32_t shell_pid = kfork(eshell, 0, 0);
+        kfork(idle, 0, 0);
+        kfork(argtest, (uint32_t []){0,10}, 2);
         kprintf("forked\n Active Procs: %d, PID: %d\n", active_procs, shell_pid);
     }
     // kfork(idle, 0, 0);

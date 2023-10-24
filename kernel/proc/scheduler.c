@@ -62,10 +62,10 @@ uint32_t fork(proc_list_t *proc){
     //copy code
     kmemcpy((void*)(long)proc->process->memory_base, (void *)buffer, 1);
     //copy stack
-    uint32_t stack_size_cpy = proc->process->stack_limit - proc->process->regs.esp;
+    uint32_t stack_size_cpy = proc->process->stack_limit - proc->process->regs.useresp;
     nproc->stack_base = (uint32_t)(long)kumalloc(STK_SZ_PAGES, 6, ret);
     nproc->stack_limit = STK_SZ_PAGES * PG_SZ;
-    nproc->regs.esp = (nproc->regs.esp - proc->process->stack_limit) + nproc->stack_limit;
+    nproc->regs.useresp = (nproc->regs.useresp - proc->process->stack_limit) + nproc->stack_limit;
     nproc->regs.ebp = (nproc->regs.ebp - proc->process->stack_limit) + nproc->stack_limit;
     kmemcpy((void*)(long)proc->process->stack_base, (void*)(long)nproc->stack_base, stack_size_cpy);
     
@@ -129,14 +129,14 @@ uint32_t exec(uint32_t *buffer, uint32_t buffer_size, uint16_t pid, char *argv[]
     proc.regs.eip = proc.memory_base;
     proc.regs.esp = proc.stack_limit;
     proc.regs.ebp = proc.stack_limit;
-    proc.regs.esp -= sizeof(int *) * 3 + sizeof(int);
+    proc.regs.useresp -= sizeof(int *) * 3 + sizeof(int);
     uint32_t *stack = (void *)(long)proc.stack_limit;
-    stack[-1] = (uint32_t)(long)argv;
+    stack[-2] = (uint32_t)(long)argv;
     uint32_t argc = 0;
     for(argc = 0; argv[argc] || argc < 65536; argc++);
-    stack[0] = argc;
-    stack[-3] = (uint32_t)(long)exit_v;
-    stack[-2] = proc.regs.ebp;
+    stack[-3] = argc;
+    stack[-1] = (uint32_t)(long)exit_v;
+    stack[0] = proc.regs.ebp;
     
     kmemcpy((void*)buffer, (void *)(long)proc.memory_base, buffer_size);
     return 0;
@@ -152,24 +152,24 @@ void init_scheduler(){
     for(int i = 0; i < 65536; i++){
         proc_list[i] = 0;
     }
-    // proc_list[0] = (void*)-1;
+    proc_list[0] = (void*)-1;
     enable_scheduler = 1;
     return;
 }
 
 void p_push(uint32_t value, proc_list_t *proc){
-    uint32_t *esp = (uint32_t *)(long)proc->process->regs.esp;
-    *esp = value;
-    proc->process->regs.esp = (uint32_t)(long)esp--;
+    proc->process->regs.esp -= 4;
+    *(uint32_t *)(long)proc->process->regs.esp = value;
+    kprintf("esp: %x\n", proc->process->regs.esp);
 }
 
 uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
     // function();
-    proc_list_t *proc_l = kmalloc(1, 6);
     process32_t *proc = kmalloc(1, 6);
     uint16_t pid = register_process(0, proc);
+    proc_list_t *proc_l = get_proc(pid);
     proc_l->process = proc;
-    
+    proc_l->flags.ring0 = 1;
     proc->abi = 0;
     proc->allocated_pages = -1;
     proc->lock = 0;
@@ -177,45 +177,43 @@ uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
     proc->stack_base = (uint32_t)(long)kumalloc(1, 6, pid);
     proc->regs.eip = (uint32_t)(long)function;
     proc->stack_limit = proc->stack_base + 4096;
-    proc->regs.esp = (uint32_t)proc->stack_limit;
+    proc->regs.esp = (uint32_t)proc->stack_limit - ((count) * sizeof(uint32_t));
     proc->regs.ebp = (uint32_t)proc->stack_limit;
     proc->regs.cs = 0x8;
     proc->regs.ds = 0x10;
     proc->regs.ss = 0x10;
     proc->regs.es = 0x10;
     proc->regs.eflags = get_eflags();
-    for(int i = 0; i < count && args; i++){
-        p_push(args[i], proc_l);
+    for(int i = 0; i < count; i++){
+        *((uint32_t *)(long)(proc->regs.esp + i * sizeof(uint32_t))) = args[i];
     }
+        p_push((uint32_t)(long)exit_v, proc_l);
+
     //fix... whatever this is
-    p_push((uint32_t)(long)exit_v, proc_l);
-    p_push(proc->regs.ebp, proc_l);
-    
+    kprintf("Count: %x", count * 4);
     
     proc->regs.ebp = proc->regs.esp;
-    kprintf("new ebp:%x\n", proc->regs.ebp);
-    kfree(proc_l);
     active_procs++;
     return pid;
 }
 char first_run = 0;
 //TODO: Upgrade to support SMP
 //DON'T TOUCH IT, IT FINALLY WORKS
-void schedule(irq_registers_t *oldregs){
-    kprintf("cpid: %d", cpid);
+irq_registers_t *schedule(irq_registers_t *oldregs){
     if(active_procs == 0 || enable_scheduler == 0){
-        return;
+        return oldregs;
     }
-    if(!first_run){
-        proc_list[cpid]->process->regs = *oldregs;
-        first_run = 1;
-        return;
-    }
-    kprintf("old ebp:%x\n", oldregs->esp);
+    proc_list[cpid]->process->regs = *oldregs;
     cpid++;
     while(!proc_list[cpid] || (!proc_list[cpid] && !proc_list[cpid]->process->lock)){
         cpid++;
     }
+    if(proc_list[cpid]->flags.ring0){
+        oldregs = (void *)(proc_list[cpid]->process->regs.esp - sizeof(irq_registers_t));
+        *oldregs = proc_list[cpid]->process->regs;
+        return oldregs;
+    }
     *oldregs = proc_list[cpid]->process->regs;
+    return oldregs;
     // kprintf("ebp:%x\n", oldregs->esp);
 }

@@ -372,18 +372,18 @@ extern void _irq_handler(irq_registers_t *regs){
     kernel_mode = 1;
     // kprintf("EAX: %x EBX: %x ECX: %x EDX: %x \nEBP: %x ESP: %x TOP OF STACK: %x\nEIP: %x DS: %x CS: %x SS:%x",
     // regs->eax, regs->ebx, regs->ecx, regs->edx, regs->ebp, regs->esp, *((uint32_t *)(long)regs->esp), regs->eip, regs->ds, regs->cs, regs->ss);
-    void (*handler)(irq_registers_t *r);
+    irq_registers_t *(*handler)(irq_registers_t *r);
     if((unsigned char) regs->int_no == 0x80){
         software_int(regs);
         // kprintf("int test");
-        schedule(regs);
+        regs = schedule(regs);
         kernel_mode = 0;
         return;
     }
-    handler = (void (*)(irq_registers_t*))_irq_handlers[(unsigned char)regs->int_no];
+    handler = (irq_registers_t *(*)(irq_registers_t*))_irq_handlers[(unsigned char)regs->int_no];
 
     if(handler){
-        handler(regs);
+        regs = handler(regs);
     }
     else{
         padding = 0;
@@ -396,7 +396,6 @@ extern void _irq_handler(irq_registers_t *regs){
     if(regs-> int_no < 0x30){
         outb(0x20, 0x20);
     }
-    
     kernel_mode = 0;
     // kprintf("\nEAX: %x EBX: %x ECX: %x EDX: %x \nEBP: %x ESP: %x TOP OF STACK: %x\nEIP: %x DS: %x CS: %x SS:%x\nEFLAGS: %x\n",
     // regs->eax, regs->ebx, regs->ecx, regs->edx, regs->ebp, regs->esp, *((uint32_t *)(long)regs->esp), regs->eip, regs->ds, regs->cs, regs->ss, regs->eflags);
