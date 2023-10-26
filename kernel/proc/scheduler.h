@@ -26,5 +26,6 @@ void init_scheduler();
 irq_registers_t *schedule(irq_registers_t *oldregs);
 void exit_proc(uint32_t exit_code, uint32_t pid);
 uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count);
+extern int push_args(uint32_t *argv, uint32_t argc, uint32_t esp);
 //WARNING: ONLY WORKS FOR KERNEL PROCESSES, DO NOT USE OR EXPOSE TO USER PROCESSES
 void exit_v();

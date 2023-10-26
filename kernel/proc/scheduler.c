@@ -158,9 +158,9 @@ void init_scheduler(){
 }
 
 void p_push(uint32_t value, proc_list_t *proc){
-    proc->process->regs.esp -= 4;
-    *(uint32_t *)(long)proc->process->regs.esp = value;
-    kprintf("esp: %x\n", proc->process->regs.esp);
+    // proc->process->regs.esp -= 4;
+    // *(uint32_t *)(long)proc->process->regs.esp = value;
+    // kprintf("esp: %x\n", proc->process->regs.esp);
 }
 
 uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
@@ -177,22 +177,23 @@ uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
     proc->stack_base = (uint32_t)(long)kumalloc(1, 6, pid);
     proc->regs.eip = (uint32_t)(long)function;
     proc->stack_limit = proc->stack_base + 4096;
-    proc->regs.esp = (uint32_t)proc->stack_limit - ((count) * sizeof(uint32_t));
+    proc->regs.esp = (uint32_t)proc->stack_limit;
     proc->regs.ebp = (uint32_t)proc->stack_limit;
     proc->regs.cs = 0x8;
     proc->regs.ds = 0x10;
     proc->regs.ss = 0x10;
     proc->regs.es = 0x10;
     proc->regs.eflags = get_eflags();
-    for(int i = 0; i < count; i++){
-        *((uint32_t *)(long)(proc->regs.esp + i * sizeof(uint32_t))) = args[i];
-    }
-        p_push((uint32_t)(long)exit_v, proc_l);
-
+    kprintf("ESP: %x, ARGV: %x, ARGC: %x\n", proc->regs.esp, args, count);
+    // for(int i = 0; i < count; i++){
+    //     // *((uint32_t *)(long)(proc->regs.esp + i * sizeof(uint32_t))) = args[i];
+    // }
+    proc->regs.esp = push_args(args, count, proc->regs.esp) - 4;
     //fix... whatever this is
+    //note to self: arguments are a mess...
     kprintf("Count: %x", count * 4);
     
-    proc->regs.ebp = proc->regs.esp;
+    // proc->regs.ebp = proc->regs.esp;
     active_procs++;
     return pid;
 }

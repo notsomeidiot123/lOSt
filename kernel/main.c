@@ -28,10 +28,10 @@ extern void end;
 void idle(){
     for(;;);
 }
-void argtest(uint32_t test2, uint32_t test){
+void argtest(uint32_t e, uint32_t test, uint32_t test2){
     int testv = 0;
     kprintf("ARG1: %x, ARG2: %x, DIFF: %x\nVAR: %x, EBP: %x, ESP: %x", &test2, &test, &test - &test2, &testv, get_proc(get_pid())->process->regs.ebp, get_proc(get_pid())->process->regs.ebp);
-    kprintf("\nVARG1: %x, VARG2: %x\n", test2, test);
+    kprintf("\nVARG1: %d, VARG2: %d, E: %d\n", test2, test, e);
     for(;;);
     exit_v();
 }

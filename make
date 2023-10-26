@@ -7,6 +7,7 @@ nasm -f bin bootloader/boot/main.s -o bin/bootloader.o
 nasm -f elf kernel/kentry.s -o bin/kentry.o
 nasm -f elf kernel/cpu/idt.s -o bin/idt.o
 nasm -f elf kernel/sizetest.s -o bin/sztest.o
+nasm -f elf kernel/proc/scheduler.s -o bin/scheduler.o
 
 CFLAGS="-g -c -m32 -ffreestanding -fno-pie -mno-sse -O0 -Wno-int-to-pointer-cast -Wno-incompatible-pointer-types -fno-stack-protector -o"
 cd kernel/
@@ -33,7 +34,7 @@ for d in ./*/; do
 done
 echo
 cd obj
-ld ../../bin/kentry.o *.o ../../bin/idt.o ../../bin/sztest.o -Ttext 0x10000 --oformat binary -melf_i386 -o ../../bin/base.o
+ld ../../bin/kentry.o *.o ../../bin/idt.o ../../bin/sztest.o ../../bin/scheduler.o -Ttext 0x10000 --oformat binary -melf_i386 -o ../../bin/base.o
 ls *.o
 cd ../../
 cat bin/bootloader.o bin/base.o >> bin/lOSt.bin
