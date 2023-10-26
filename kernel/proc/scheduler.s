@@ -25,6 +25,7 @@ push_args:
     .return:
     ; push 0
     mov eax, esp
+    ; jmp $
     mov esp, ecx
     pop edx
     pop ecx

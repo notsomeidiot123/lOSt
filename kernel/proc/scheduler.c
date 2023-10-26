@@ -185,15 +185,15 @@ uint32_t kfork(void (*function)(), uint32_t args[], uint32_t count){
     proc->regs.es = 0x10;
     proc->regs.eflags = get_eflags();
     kprintf("ESP: %x, ARGV: %x, ARGC: %x\n", proc->regs.esp, args, count);
+    p_push((uint32_t)(long)exit_v, proc_l);
     // for(int i = 0; i < count; i++){
     //     // *((uint32_t *)(long)(proc->regs.esp + i * sizeof(uint32_t))) = args[i];
     // }
     proc->regs.esp = push_args(args, count, proc->regs.esp) - 4;
     //fix... whatever this is
     //note to self: arguments are a mess...
-    kprintf("Count: %x", count * 4);
+    kprintf("ESP: %x\n", proc->regs.esp);
     
-    // proc->regs.ebp = proc->regs.esp;
     active_procs++;
     return pid;
 }
