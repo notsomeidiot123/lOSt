@@ -69,6 +69,17 @@ void clearmem(void *ptr, int count){
         ptr = 0;
     }
 }
+unsigned int kstrtol(char *str){
+    unsigned int ret = 0;
+    // char bases[] = "0123456789abcdefghijklmnopqrstuvwxyz"
+    while(*str){
+        ret *= 10;
+        ret += *str - '0';
+        str++;
+    }
+    return ret;
+}
+
 void kstrcat( char *dest, char* first, char *second){
     int pos = 0;
     while(first[pos]){

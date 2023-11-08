@@ -60,14 +60,24 @@ const char *disk_types_ids[] = {
     "us",
 };
 
+filesystem32_t *get_fs(int fs){
+    return filesystems[fs];
+}
+
+uint32_t get_fs_count(){
+    uint32_t c = 0;
+    for(int i = 0; i < 26; i++){
+        c += (filesystems[i] != 0);
+    }
+    return c;
+}
+
 /*
 WARNING: This function allocates memory by itself... the caller is *technically*
 responsible for destroying the pointer, however the intended use will most likely
 result in the pointer only being destroyed (and freed) upon shudown/drive removal
 */
-filesystem32_t *get_fs(int fs){
-    return filesystems[fs];
-}
+
 
 filesystem32_t *detect_fs(uint16_t *part_start, int drive, uint32_t start_sector, mbr_t *mbr, uint8_t partition){
     int id = 0;
@@ -162,10 +172,57 @@ uint8_t get_drive_count(){
     }
     return count;
 }
+
+uint32_t *ramdisk = 0;
+
+uint32_t ramdisk_init(uint32_t size_sectors){
+    ramdisk = kmalloc(size_sectors, 7); //2 MB ramdisk
+    if(ramdisk == 0){
+        kprintf("[lOSt]: Failed to allocate memory for RAMDISK");
+        return -1;
+    }
+    drive32_t *drive = kmalloc(1, 6);
+    if(drive == 0){
+        kprintf("[lOSt]: Failed to initialize RAMDISK data structure\n");
+        return -1;
+    }
+    drive->bytes_per_sector = 512;
+    drive->flags.contains_pt = 0;
+    drive->size_high = 0;
+    drive->size_low = 512 * 4096;
+    drive->type = DRIVE_VIRT;
+    register_drive(drive);
+    return 0;
+};
+
+//size is in 512 byte sectors
+void ramdisk_write(uint32_t pos, uint8_t *data, uint32_t size){
+    uint32_t *src = (void *)data;
+    uint32_t *dest = (ramdisk + pos);
+    for(int i = 0; i < (size*512)/4; i++){
+        *(dest) = *(src);
+        dest++;
+        src++;
+    }
+}
+//size is in 512 byte sectors
+void ramdisk_read(uint32_t pos, uint8_t *data, uint32_t size){
+    uint32_t *dest = (void *)data;
+    uint32_t *src = (ramdisk + pos);
+    for(int i = 0; i < (size*512)/4; i++){
+        *(dest) = *(src);
+        dest++;
+        src++;
+    }
+}
+
 uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int drive){
     switch(drives[drive]->type){
         case DRIVE_NULL:
             return (void*)DE_INVALID_DRIVE;
+        case DRIVE_VIRT:
+            ramdisk_read(start, (void *)buffer, sectors);
+            break;
         case DRIVE_PATA28:
             return ata_read(buffer, (ata_drive32_t *)drives[drive], sectors, start);
             break;
@@ -179,6 +236,9 @@ uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive){
     switch(drives[drive]->type){
         case DRIVE_NULL:
             return DE_INVALID_DRIVE;
+        case DRIVE_VIRT:
+            ramdisk_write(start, (void *)buffer, sectors);
+            break;
         case DRIVE_PATA28:
             ata_write(buffer, (ata_drive32_t *)drives[drive], sectors, start);
             break;
@@ -242,4 +302,13 @@ void fread(FILE* file, uint8_t* buffer, uint32_t size){
             break;
     }
     return ;
+}
+
+uint8_t init_fs(uint32_t drive, uint32_t type, uint32_t partition){
+    switch(type){
+        case FS_FAT32:
+            return fat32_create_fs(get_drive(drive), partition);
+    }
+    
+    return -1;
 }

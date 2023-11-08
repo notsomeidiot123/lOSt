@@ -7,7 +7,7 @@ qemu-system-i386 bin/lOSt.bin\
     -audiodev pa,id=audio0 -machine pcspk-audiodev=audio0\
     -m 512M\
     -smp 2\
-    -monitor stdio
-    # -serial mon:stdio
+    -serial mon:stdio
+    # -monitor stdio
     # -d int
     # -d trace:*ide*

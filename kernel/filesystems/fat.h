@@ -135,3 +135,4 @@ int fat32_read(FILE *file, int size, char *buffer, fs_fat_t *fat);
 int fat32_write(FILE *file, int size, void *buffer, fs_fat_t *fat);
 fs_fat_t *fat32_register(filesystem32_t *fs, int drive, uint16_t *buffer, uint32_t partition_start_lba);
 FAT_FILE *fat32_create_file(char *fname, char *root, fs_fat_t *fat);
+uint8_t fat32_create_fs(drive32_t *drive, uint32_t partition);

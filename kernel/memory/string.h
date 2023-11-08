@@ -24,3 +24,5 @@ WARNING: THE CALLER IS RESPONSIBLE FOR FREEING MEMORY ALLOCATED BY THIS
 FUCNTION.
 */
 extern char *ksprintf(char *format, ...);
+
+extern unsigned int kstrtol(char *str);

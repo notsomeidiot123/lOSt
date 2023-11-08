@@ -28,24 +28,25 @@ extern void end;
 void idle(){
     for(;;);
 }
-void argtest(uint32_t e, uint32_t test, uint32_t test2){
-    int testv = 0;
-    kprintf("ARG1: %x, ARG2: %x, DIFF: %x\nVAR: %x, EBP: %x, ESP: %x", &test2, &test, &test - &test2, &testv, get_proc(get_pid())->process->regs.ebp, get_proc(get_pid())->process->regs.ebp);
-    kprintf("\nVARG1: %d, VARG2: %d, E: %d\n", test2, test, e);
-    for(;;);
-    exit_v();
-}
+// void argtest(uint32_t test, uint32_t test2){
+//     int testv = 0;
+//     kprintf("ARG1: %x, ARG2: %x, E, %x, DIFF: %x\nVAR: %x, EBP: %x, ESP: %x", &test2, &test, 0, &test - &test2, &testv, get_proc(get_pid())->process->regs.ebp, get_proc(get_pid())->process->regs.ebp);
+//     kprintf("\nVARG1: %d, VARG2: %d, E: %d\n", test2, test, 0);
+//     for(;;);
+//     exit_v();
+// }
 extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     init_memory(mmap_ptr, mmap_count); //make sure to adjust for other mmap types
+    set_color(0x7);
     kprintf("Registering MMAP:\n");
     kstrcat(catstr, "RAM: ", ltostr(get_ram_size()/1024/1024, 10, 0));
     kstrcat(catstr, catstr, "Mb");
     disp_str(40, 12, catstr);
     textmode_print_load();
-    set_color(0x7);
     char serial_res = serial_init();
     kprintf("Finished\n");
     clear_screen();
+    
     kprintf("[      ] Loading IDT");
     init_idt();
     irq_install_handler(irq0_timer_handler, 0);
@@ -78,17 +79,21 @@ extern void kmain(void *mmap_ptr, short mmap_count, short mmap_type){
     kprintf("finished\n");
     disp_str(40, 13, "Finished in Time:");
     disp_str(40 + 17/2 + 4, 13, ltostr(seconds, 10, 0));
+    
+    //if we have no filesystems mounted, make a ramdisk and init a fat32 fs
+    if(!get_fs_count()){
+        disp_str(40, 16, "WARNING: Data may not be saved, no mounted filesystems!");
+    }
+    kfork(idle, 0, 0);
     if(lostrc == 0){
         disp_str(40, 14, "Error: Cannot find lOSt.rc on any mounted filesystem");
         disp_str(40, 15, "Booting into emergency shell!");
-        // eshell();
-        // kprintf("PTR: %x", eshell);
-        // uint32_t shell_pid = kfork(eshell, 0, 0);
-        // kfork(idle, 0, 0);
-        kfork(argtest, (uint32_t []){0,10}, 2);
-        // kprintf("forked\n Active Procs: %d, PID: %d\n", active_procs, shell_pid);
+        uint32_t shell_pid = kfork(eshell, 0, 0);
+        // kfork(argtest, (uint32_t []){0,10}, 2);
+        kprintf("Real: %d, Test: %s", kstrtol(ltostr(0x55aa, 10, 0)) ,ltostr((unsigned int)0x55aa, 10, 3));
+        kprintf("forked\n Active Procs: %d, PID: %d\n", active_procs, shell_pid);
     }
-    // kfork(idle, 0, 0);
+
 };
 
 //when we send the read command, we set a flag in the process struct, which prevents it from 

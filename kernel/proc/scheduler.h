@@ -17,7 +17,7 @@ typedef struct proc_list_s{
 }proc_list_t;
 
 extern uint32_t active_procs;
-// extern uint32_t (*load_exe)(FILE *file, uint32_t argc, char **argv);
+extern uint32_t (*load_exe)(FILE *file, uint32_t argc, char **argv);
 proc_list_t *get_proc(uint32_t pid);
 uint32_t fork(proc_list_t *proc);
 uint32_t get_pid();

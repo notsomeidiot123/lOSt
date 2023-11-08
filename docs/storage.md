@@ -3,6 +3,7 @@
 The storage system in lOSt is designed to be pretty modular at compile-time, with few changes needed to be made in order to allow the changing or addition of new drivers. Unfortunately, at this time, this modularity does not continue to post-compilation, so while it's a great toy OS for the technical type (those who use Arch Linux, for example), others will need to either learn just a bit of C to be able to import the correct drivers, or will just need to roll with the default drivers. 
 
 Side note, kind of bragging here, but my code is pretty bug-less afaik, but if you do find a bug, please let me know, by submitting an issue on [github](https://github.com/notsomeidiot123/lost)!
+
 ## Modularity
 
 ### Changing a driver

@@ -16,4 +16,7 @@ extern void disp_str(int x, int y, char *str);
 extern unsigned short *get_framebuffer();
 extern void set_framebuffer(unsigned short *);
 
+extern void set_color(int color);
+extern int get_color();
+
 extern int padding;

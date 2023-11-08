@@ -23,7 +23,7 @@ push_args:
         jmp .loop
 
     .return:
-    ; push 0
+    push dword 0
     mov eax, esp
     ; jmp $
     mov esp, ecx

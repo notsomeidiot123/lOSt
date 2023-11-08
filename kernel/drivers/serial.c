@@ -169,7 +169,9 @@ void deregister_serial_listener(int port, uint32_t key){
     ports.com_desc->listner_data_index[index] = 0;
     ports.com_desc->listner_keys[index] = 0;
 }
-int base_color;
+
+/*a lot of these are just leftovers from legacy code...*/
+
 int buffer_index = 0;
 int xpos = 0;
 int ypos = 0;
@@ -303,12 +305,4 @@ void kprintf(char *format, ...){
 
         }
     }
-}
-
-
-void set_color(int color){
-    base_color = color;
-}
-int get_color(){
-    return base_color;
 }

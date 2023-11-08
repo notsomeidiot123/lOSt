@@ -52,7 +52,20 @@ typedef struct
     unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
     unsigned int int_no, err_code;    /* our 'push byte #' and ecodes do this */
     unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
-} irq_registers_t;
+} __attribute__((packed))irq_user_registers_t;
+typedef struct
+{
+    unsigned int gs, fs, es, ds;      /* pushed the segs last */
+    unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
+    unsigned int int_no, err_code;    /* our 'push byte #' and ecodes do this */
+    unsigned int eip, cs, eflags, ss;   /* pushed by the processor automatically */ 
+}__attribute__((packed)) irq_kernel_registers_t;
+
+typedef union irq_registers_u{
+    irq_user_registers_t user;
+    irq_kernel_registers_t kernel;
+}irq_registers_t;
+
 extern void init_idt();
 
 void pic_remask();

@@ -103,6 +103,11 @@ void write_screen(char *str){
     }
 }
 
+void sdisk(){
+    kprintf("Hello!\n");
+    exit_v();
+}
+
 void exec_command(char *command){
     if(command[0] == 0){
         return;
@@ -118,19 +123,13 @@ void exec_command(char *command){
     }
     else if(!kstrcmp(command, "disks")){
         write_screen("Showing mounted Disks\n");
-        int last = -1;
+        uint32_t showed = 0;
         for(int i = 0; i < 26; i++){
-            if(i == last){
-                continue;
-            }
             drive32_t *drive = get_drive(i);
-            last = i;
             if(drive == 0){
                 continue;
             }
-            char *string = ksprintf("%s%c:\n\tType: %s\n\tSize: %dMB\n\tBytes Per Sector: %d\n", disk_types_ids[drive->type], 'a' + i, drive_type_strs[drive->type],(drive->size_low * drive->bytes_per_sector)/1024/1024, drive->bytes_per_sector);
-            write_screen(string);
-            kfree(string);
+            kprintf("%s%c:\n\tType: %s\n\tSize: %dMB\n\tBytes Per Sector: %d\n", disk_types_ids[drive->type], 'a' + i, drive_type_strs[drive->type],(drive->size_low * drive->bytes_per_sector)/1024/1024, drive->bytes_per_sector);
         }
     }
     else if(!kstrcmp(command, "meminfo")){
@@ -147,11 +146,7 @@ void exec_command(char *command){
             used_mem + free_mem
         );
         //not a word... i was feeling lazy
-        char sz_str_total = (free_mem + used_mem) < 1024 ? 'B' : ((free_mem + used_mem) < 1024*1024 ? 'K' : ((free_mem + used_mem) < 1024*1024*1024 ? 'M' : 'G'));
-        char sz_str_used = used_mem < 1024 ? 'B' : (used_mem < 1024*1024 ? 'K' : (used_mem < 1024*1024*1024 ? 'M' : 'G'));
-        char sz_used = used_mem < 1024 ? used_mem : (used_mem < 1024*1024 ? used_mem/1024 : (used_mem < 1024*1024*1024 ? used_mem/1024/1024 : used_mem/1024/1024/1024));
-        char sz_total = (free_mem + used_mem )< 1024 ? (free_mem + used_mem) : ((free_mem + used_mem) < 1024*1024 ? (free_mem + used_mem)/1024 : ((free_mem + used_mem) < 1024*1024*1024 ? (free_mem + used_mem)/1024/1024 : (free_mem + used_mem)/1024/1024/1024));
-        kprintf("(%d%cb/%d%cb)\n", sz_used, sz_str_used, sz_total, sz_str_total);
+        kprintf("(%dMb/%dMb)\n", used_mem/1024/1024, (used_mem+free_mem)/1024/1024);
     }
     else if(!kstrcmp(command, "cd ../")){
         int last = 0;
@@ -178,14 +173,18 @@ void exec_command(char *command){
     }
     else if(!kstrcmp(command, "osinfo")){
         kprintf("Kernel: %s\nShell: %s\n", OS_VERSION, SHELL_VERSION);
+        kprintf("Mounted Drives: %d, Mounted Filesystems: %d\n", get_drive_count(), get_fs_count());
     }
     else if(!kstrcmp(command, "help")){
         write_screen("osinfo: Display information about the OS\nuser: Display username\nmeminfo: Show information about memory usage\ndisks: Show information about mounted disks\nclear: Clear the screen\nexit: Exit the shell enviornment\n");
     }
+    else if(!kstrcmp(command, "fsinfo")){
+        filesystem32_t *fs = get_fs(eshell_settings.current_directory[0] - 'A');
+        kprintf("%d", eshell_settings.current_directory[0]-'A');
+        kprintf("Drive: %d, MountedID: %d, Read Only: %d\nPartition: %d, Size (Sectors): %d, Sector Size: %d\nType: %d\n", fs->drive, fs->mountID, fs->flags.read_only, fs->partition, fs->size_low, fs->sector_size_bytes, fs->type);
+    }
     else{
-        write_screen("Command not found: ");
-        write_screen(command);
-        write_screen("\n");
+        
     }
 }
 
@@ -260,7 +259,6 @@ void eshell(){
         while(!wait_secs(0));
     }
     toggle_auto_return();
-
     deregister_serial_listener(0, eshell_settings.driver_key);
     exit_v();
 }

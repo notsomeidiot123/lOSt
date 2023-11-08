@@ -13,8 +13,7 @@ extern uint8_t serial_read(int port);
 extern uint32_t register_serial_listener(void *listener, int port, int pid);
 extern void deregister_serial_listener(int port, uint32_t key);
 
-extern void set_color(int color);
-extern int get_color();
+
 extern void clear_screen();
 extern void toggle_auto_return();
 

@@ -5,13 +5,13 @@
 unsigned int seconds;
 unsigned int ticks;
 
-irq_registers_t *irq0_timer_handler(irq_registers_t *registers){
+irq__useR_registers_t *irq0_timer_handler(irq__useR_registers_t *registers){
     ticks++;
     if(ticks % 18 == 0){
         seconds++;
         // schedule(registers);   
-        return schedule(registers);
     }
+    return schedule(registers);
     return registers;
     // schedule(registers);
     

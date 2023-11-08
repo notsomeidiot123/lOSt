@@ -281,3 +281,7 @@ fs_fat_t *fat32_register(filesystem32_t *fs, int drive, uint16_t *buffer, uint32
     fatfs->last_free_cluster = fsinfo->last_free_cluster;
     return fatfs;
 }
+
+uint8_t fat32_create_fs(drive32_t *drive, uint32_t partition){
+    
+}

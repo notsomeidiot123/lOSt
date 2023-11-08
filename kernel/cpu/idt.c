@@ -9,6 +9,7 @@
 // #include "../filesystems/fat.h"
 #include "../drivers/storage.h"
 #include "../proc/scheduler.h"
+#include "../drivers/timer.h"
 
 uint32_t get_eflags(){
     uint32_t ret = 0;
@@ -180,14 +181,15 @@ extern void panic(irq_registers_t *regs, ...){
     set_color(0x1f);
     clear_screen();
     kprintf("f0und: Kernel panic!\nMessage: I'm sorry, your computer ran into an exception while running. Please be patient while we attempt to fetch information about what went wrong.\n");
-    kprintf("Exception: %s Exception!\n", exceptions[regs->int_no & 0xff]);
+    kprintf("Exception: %s Exception!\n", exceptions[regs->kernel.int_no & 0xff]);
     padding = 8;
-    kprintf("Occured at:    %x\n", regs->eip);
-    kprintf("Base Pointer:  %x\n", regs->ebp);
-    kprintf("Stack Pointer: %x\n", regs->esp);
-    kprintf("Opcode: %x (%s)| CS: %x | DS: %x | SS: %x\n", *((unsigned int *)(long)regs->eip), opcodes[*((unsigned char *)(long)regs->eip)], regs->cs, regs->ds, regs->ss == 0x10);
+    kprintf("Occured at:    %x\n", regs->kernel.eip);
+    kprintf("Base Pointer:  %x\n", regs->kernel.ebp);
+    kprintf("Stack Pointer: %x\n", regs->kernel.esp);
+    kprintf("Opcode: %x (%s)| CS: %x | DS: %x | SS: %x\n", *((unsigned int *)(long)regs->kernel.eip), opcodes[*((unsigned char *)(long)regs->kernel.eip)], regs->kernel.cs, regs->kernel.ds, regs->kernel.ss == 0x10);
     kprintf("When you are ready, please restart your computer to continue. Any data from before the exception unfortuantely may be lost.\n");
-    kprintf("f0und: End Kernel Panic! Result: Critical Exception. Restart.\nCode: %x%x\n", regs->int_no, regs->err_code);
+    kprintf("f0und: End Kernel Panic! Result: Critical Exception. Restart.\nCode: %x%x\n", regs->kernel.int_no, regs->kernel.err_code);
+    kprintf("Uptime: %ds", seconds);
     for(;;);
 }
 
@@ -228,10 +230,11 @@ extern void _fhandler(irq_registers_t *regs, ...){
         "Software Panic!",
     };
     kernel_mode = 1;
-    if( active_procs <= 2){
-        panic(regs);
-    }
-    kprintf("%s (PID: %x)\n",exceptions[regs->int_no], get_pid());
+    // if( active_procs < 2){
+    //     panic(regs);
+    // }
+    panic(regs);
+    kprintf("%s (PID: %x)\n",exceptions[regs->user.int_no], get_pid());
     exit_proc(-1, get_pid());
     schedule(regs);
     kernel_mode = 0;
@@ -274,7 +277,7 @@ void irq_remap(){
 /*
 TODO: Change IO operations to start using the job queue
 */
-void native_irq(irq_registers_t *regs){
+void native_irq(irq_user_registers_t *regs){
     switch(regs->eax){
         case 0:
         //sys_exit
@@ -304,7 +307,7 @@ void native_irq(irq_registers_t *regs){
                 if(regs->ecx < 0x80000){
                     exit_proc(-1, get_pid());
                 }
-                kmemcpy(proc->process->stdin, (void *)(long)proc->process->regs.ecx, regs->edx);
+                kmemcpy(proc->process->stdin, (void *)(long)proc->process->regs.user.ecx, regs->edx);
                 kmemcpy(proc->process->stdin + regs->edx, proc->process->stdin, kstrlen(proc->process->stdin) - regs->edx);
                 proc->process->stdin[kstrlen(proc->process->stdin)] = 0;
             }
@@ -360,7 +363,7 @@ void native_irq(irq_registers_t *regs){
     }
 }
 
-void software_int(irq_registers_t* regs){
+void software_int(irq_user_registers_t* regs){
     uint16_t pid = get_pid();
     if(get_proc(pid)->process->abi == 0){
         native_irq(regs);
@@ -372,28 +375,28 @@ extern void _irq_handler(irq_registers_t *regs){
     kernel_mode = 1;
     // kprintf("EAX: %x EBX: %x ECX: %x EDX: %x \nEBP: %x ESP: %x TOP OF STACK: %x\nEIP: %x DS: %x CS: %x SS:%x",
     // regs->eax, regs->ebx, regs->ecx, regs->edx, regs->ebp, regs->esp, *((uint32_t *)(long)regs->esp), regs->eip, regs->ds, regs->cs, regs->ss);
-    irq_registers_t *(*handler)(irq_registers_t *r);
-    if((unsigned char) regs->int_no == 0x80){
-        software_int(regs);
+    irq_registers_t*(*handler)(irq_registers_t*r);
+    if(get_proc(get_pid())->flags.ring0 && (unsigned char) regs->user.int_no == 0x80){
+        software_int(&regs->user);
         // kprintf("int test");
         regs = schedule(regs);
         kernel_mode = 0;
         return;
     }
-    handler = (irq_registers_t *(*)(irq_registers_t*))_irq_handlers[(unsigned char)regs->int_no];
+    handler = (irq_registers_t*(*)(irq_registers_t*))_irq_handlers[(unsigned char)regs->kernel.int_no];
 
     if(handler){
         regs = handler(regs);
     }
     else{
         padding = 0;
-        kprintf("f0und: Error! No IRQ handler installed for IRQ %d!\n", regs->int_no);
+        kprintf("f0und: Error! No IRQ handler installed for IRQ %d!\n", regs->kernel.int_no);
     }
 
-    if(regs->int_no >= 0x28 && regs->int_no < 0x30){
+    if(regs->kernel.int_no >= 0x28 && regs->kernel.int_no < 0x30){
         outb(0xa0, 0x20);
     }
-    if(regs-> int_no < 0x30){
+    if(regs->kernel.int_no < 0x30){
         outb(0x20, 0x20);
     }
     kernel_mode = 0;

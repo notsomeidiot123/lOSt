@@ -155,21 +155,21 @@ void register_handlers(kb_handler translated_handler){
     return;
 }
 
-void ps2_handler(irq_registers_t *regs){
+irq_user_registers_t *ps2_handler(irq_user_registers_t *regs){
     int scancode = inb(KB_DATA);
     if(scancode < 0x80){
         switch(translated_kb_codes[scancode]){
             case LSHFT:
             case RSHFT:
                 shift_down = 1;
-                return;
+                return regs;
                 break;
             case CAPS:
                 caps_lock = !caps_lock;
-                return;
+                return regs;
                 break;
             case LALT:
-                return;
+                return regs;
                 break;
             default:
                 break;
@@ -186,14 +186,15 @@ void ps2_handler(irq_registers_t *regs){
             case LSHFT:
             case RSHFT:
                 shift_down = 0;
-                return;
+                return regs;
                 break;
             case CAPS:
             case LALT:
-                return;
+                return regs;
                 break;
             default:
                 break;
         }
     }
+    return regs;
 }

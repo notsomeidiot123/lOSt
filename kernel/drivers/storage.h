@@ -91,6 +91,8 @@ extern uint16_t *read_from_drive(uint16_t *buffer, int sectors, int start, int d
 extern uint16_t write_to_drive(uint16_t *buffer, int sectors, int start, int drive);
 extern drive32_t *get_drive(int drive);
 extern filesystem32_t *get_fs(int fs);
+extern uint32_t get_fs_count();
+extern uint8_t init_fs(uint32_t drive, uint32_t type, uint32_t partition);
 extern int register_fs(filesystem32_t *fs);
 //WARNING: FOPEN ALLOCATES MEMORY
 extern FILE *fopen(char *name, int mode);
@@ -98,3 +100,4 @@ extern int fwrite(FILE* file, uint8_t *buffer, uint32_t size);
 // extern int fwrite_at(char *filename, char *buffer, uint32_t size);
 extern void fread(FILE* f, uint8_t* buffer, uint32_t size);
 // extern uint8_t *fread_at(FILE *f, uint8_t* buffer, uint32_t size, uint32_t start);
+extern uint32_t ramdisk_init(uint32_t size_sectors);
